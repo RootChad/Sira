@@ -618,7 +618,11 @@ SIRA.places = {
   quba:       { fr: "Quba'", en: "Quba'", ar: "قباء", hidden: true },
   jerusalem:  { fr: "Jérusalem (al-Aqsa)", en: "Jerusalem (al-Aqsa)", ar: "بيت المقدس" },
   yanbu:      { fr: "Yanbu'", en: "Yanbu'", ar: "ينبع", hidden: true },
-  shuaybah:   { fr: "Port d'ash-Shu'ayba", en: "Port of ash-Shu'aybah", ar: "ميناء الشعيبة" }
+  shuaybah:   { fr: "Port d'ash-Shu'ayba", en: "Port of ash-Shu'aybah", ar: "ميناء الشعيبة" },
+  ctesiphon:  { fr: "Ctésiphon", en: "Ctesiphon", ar: "المدائن", hidden: true },
+  alexandria: { fr: "Alexandrie", en: "Alexandria", ar: "الإسكندرية", hidden: true },
+  hajar:      { fr: "Bahreïn (Hajar)", en: "Bahrain (Hajar)", ar: "البحرين (هجر)", hidden: true },
+  sanaa:      { fr: "Sanaa", en: "Sana'a", ar: "صنعاء", hidden: true }
 };
 
 SIRA.regions = {
@@ -754,6 +758,25 @@ SIRA.verses = {
     en: "And indeed, you are of a great moral character.",
     ref: { fr: "Sourate al-Qalam, 68:4", en: "Surat al-Qalam, 68:4", ar: "سورة القلم، الآية ٤" }
   }
+};
+
+SIRA.verses.iqra = {
+  ar: "اقْرَأْ بِاسْمِ رَبِّكَ الَّذِي خَلَقَ",
+  fr: "Lis, au nom de ton Seigneur qui a créé.",
+  en: "Read in the name of your Lord who created.",
+  ref: { fr: "Sourate al-'Alaq, 96:1", en: "Surat al-'Alaq, 96:1", ar: "سورة العلق، الآية ١" }
+};
+SIRA.verses.hijra = {
+  ar: "لَا تَحْزَنْ إِنَّ اللَّهَ مَعَنَا",
+  fr: "Ne t'afflige pas, Allah est avec nous.",
+  en: "Do not grieve; indeed Allah is with us.",
+  ref: { fr: "Sourate at-Tawba, 9:40", en: "Surat at-Tawba, 9:40", ar: "سورة التوبة، الآية ٤٠" }
+};
+SIRA.verses.death = {
+  ar: "وَمَا مُحَمَّدٌ إِلَّا رَسُولٌ قَدْ خَلَتْ مِن قَبْلِهِ الرُّسُلُ",
+  fr: "Muhammad n'est qu'un messager ; des messagers avant lui sont passés.",
+  en: "Muhammad is no more than a messenger; messengers have passed on before him.",
+  ref: { fr: "Sourate Al 'Imran, 3:144", en: "Surat Al 'Imran, 3:144", ar: "سورة آل عمران، الآية ١٤٤" }
 };
 
 /* Quiz */

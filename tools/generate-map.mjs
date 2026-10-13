@@ -41,5 +41,5 @@ const r = {}, km = {};
 const hav=(a,b)=>{const R=6371,t=Math.PI/180,dl=(b[1]-a[1])*t,dg=(b[0]-a[0])*t;const h=Math.sin(dl/2)**2+Math.cos(a[1]*t)*Math.cos(b[1]*t)*Math.sin(dg/2)**2;return 2*R*Math.asin(Math.sqrt(h));};
 for (const [k,pts] of Object.entries(routes)) { let s=0; for(let i=1;i<pts.length;i++) s+=hav(pts[i-1],pts[i]); km[k]=Math.round(s/10)*10; }
 for (const [k,pts] of Object.entries(routes)) r[k] = pts.map(v=>{const p=proj(v);return [+p[0].toFixed(1),+p[1].toFixed(1)];});
-fs.writeFileSync(new URL('../js/map-data.js', import.meta.url), `/* Land outline generated from Natural Earth (public domain) via world-atlas, Mercator projection.\n   Routes are approximate, drawn for learning purposes. */\nwindow.SIRA_MAP = ${JSON.stringify({w:W,h:H,land:d,places:out,labels:lab,routes:r})};\n`);
+fs.writeFileSync(new URL('../js/map-data.js', import.meta.url), `/* Land outline generated from Natural Earth (public domain) via world-atlas, Mercator projection.\n   Routes are approximate, drawn for learning purposes. */\nwindow.SIRA_MAP = ${JSON.stringify({w:W,h:H,land:d,places:out,labels:lab,routes:r,geo:{places,routes}})};\n`);
 console.log(d.length, out, lab);

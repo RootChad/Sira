@@ -2,10 +2,14 @@
   "name": "sira-tools",
   "private": true,
   "type": "module",
-  "description": "Génère js/map-data.js à partir des données Natural Earth",
-  "scripts": { "map": "node generate-map.mjs" },
+  "description": "Génère js/map-data.js (Natural Earth) et data/terrain/ (Terrain Tiles)",
+  "scripts": {
+    "map": "node generate-map.mjs",
+    "terrain": "node generate-terrain.mjs"
+  },
   "devDependencies": {
     "d3-geo": "3.1.1",
+    "pngjs": "7.0.0",
     "topojson-client": "3.1.0",
     "world-atlas": "2.0.2"
   }

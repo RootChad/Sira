@@ -11,7 +11,12 @@ La page s'ouvre sur un **voyage immersif**, pensé comme un film : **un chapitre
 - **36 scènes** dessinées par le code : la nuit de La Mecque et les oiseaux d'Abraha, la tente de Halima dans le désert, les caravanes de Syrie, la lumière de la grotte de Hira avec le mot « اقرأ », la traversée vers l'Abyssinie, l'arc lumineux de l'Isra' vers Jérusalem, la construction de la mosquée de Médine brique par brique, la boussole de la qibla qui pivote, la Coupole verte…
 - **Les foules sont faites de points** : 313 à Badr face à 1 000, les archers d'Uhud qui quittent la colline, le fossé, 10 000 compagnons qui convergent vers La Mecque pendant que tombent les 360 idoles, plus de 100 000 pèlerins à 'Arafat. Une légende indique combien de personnes représente chaque point.
 - **Cartes animées** : le tracé de l'Hégire se dessine au défilement, avec le compteur de kilomètres ; les lettres aux souverains partent de Médine vers Jérusalem, Ctésiphon, Aksoum, Alexandrie, Bahreïn et Bosra.
-- **3D avec Three.js** : les foules deviennent des milliers de sphères éclairées, vues en perspective, et la caméra tourne doucement avec le défilement. Pendant l'Hégire, l'Arabie apparaît en relief et la caméra suit le voyageur ; les lettres aux souverains s'élèvent en arcs au-dessus de la carte. Sans WebGL, le site reprend automatiquement la version 2D.
+- **Un monde en 3D, sur le vrai relief** (Three.js) : l'Arabie est reconstruite à partir des altitudes satellites (SRTM). La Ka'ba au fond de sa vallée, le Jabal an-Nour, les harra de lave autour de Médine, les monts de Ta'if à 1 600 m, la mer Rouge… La caméra vole d'un lieu à l'autre à chaque chapitre.
+- **Le ciel et l'heure** : un ciel physique avec soleil, lune et étoiles. Chaque événement a son heure : la nuit de la révélation à Hira, l'aube de Badr, le coucher du soleil sur La Mecque. Pendant l'Hégire, les nuits et les jours passent, avec un compteur des jours de voyage.
+- **Simulations** : les foules (313 à Badr face à 1 000, les archers d'Uhud, le fossé, 10 000 à la conquête, les pèlerins à 'Arafat) sont posées sur le vrai terrain ; les itinéraires épousent le relief ; les lettres aux souverains et les délégations s'élèvent en arcs.
+- **Découvertes** : des points lumineux sur la scène s'ouvrent en fiches (23 au total) : pourquoi le fossé fut creusé au nord, le puits de Badr, la colline des archers, la direction de la qibla… avec l'altitude réelle et la distance à la Ka'ba ou à la mosquée du Prophète.
+- **Télémétrie** : heure du jour, coordonnées, altitude du sol et kilomètres parcourus s'affichent en direct.
+- Sans WebGL (ou en ouvrant le fichier sans serveur), le site reprend automatiquement la version 2D illustrée.
 - **Carte sans quitter le récit** : « Voir sur la carte » ouvre une carte par-dessus le chapitre, cadrée sur l'itinéraire ou le lieu ; on la ferme et on retrouve sa place.
 - **Barre de vie** en bas de l'écran : année grégorienne, année de l'Hégire, âge, et position sur les 63 années. On peut cliquer pour sauter à un événement. Un menu liste tous les chapitres.
 - **Ambiance sonore** facultative (vent, mer, carillon), synthétisée dans le navigateur, sans fichier audio.
@@ -60,10 +65,12 @@ js/story.js         le voyage : chapitres, décors, foules, cartes animées, son
 js/data.js          contenu trilingue : événements, lieux, itinéraires, chiffres, famille, quiz
 js/i18n.js          textes de l'interface (fr / en / ar)
 js/app.js           exploration (carte, chiffres, famille, quiz) et langue
-js/stage3d.js       la 3D du voyage (foules et cartes), module ES
-js/vendor/          Three.js 0.169 (licence MIT), fourni avec le site
+js/world.js         le monde 3D du voyage : relief, ciel, caméra, foules, découvertes (module ES)
+js/world-data.js    réglages de chaque plan (lieu, heure, cadrage) et fiches « découverte » (fr / en / ar)
+js/vendor/          Three.js 0.169 et son ciel (Sky.js), licence MIT, fournis avec le site
 js/map-data.js      contour des terres, lieux et itinéraires projetés (généré)
-tools/              script de génération de la carte
+data/terrain/       cartes d'altitude en PNG 16 bits (générées)
+tools/              scripts de génération de la carte et du relief
 ```
 
 ### Modifier le contenu
@@ -92,11 +99,25 @@ npm install
 npm run map
 ```
 
+### Régénérer le relief
+
+Les altitudes du monde 3D viennent des *Terrain Tiles* (AWS Open Data). Pour changer une zone ou sa précision, éditer `AREAS` dans `tools/generate-terrain.mjs`, puis :
+
+```bash
+cd tools
+npm install
+npm run terrain   # télécharge les tuiles (curl) et écrit data/terrain/*.png et index.json
+```
+
+Chaque PNG garde l'altitude en mètres + 1000 sur 16 bits (rouge = octet fort, vert = octet faible). Pour placer la caméra d'un chapitre ou ajouter une découverte, éditer `js/world-data.js` (coordonnées en longitude/latitude).
+
 ## Sources
 
 - Ibn Hisham, *as-Sira an-Nabawiyya*
 - Ibn Sa'd, *at-Tabaqat al-Kubra*
 - Safiur-Rahman al-Mubarakpuri, *ar-Rahiq al-Makhtum* (Le Nectar cacheté)
 - Fond de carte : [Natural Earth](https://www.naturalearthdata.com/) (domaine public), via `world-atlas`
+- Relief : [Terrain Tiles](https://registry.opendata.aws/terrain-tiles/) (Mapzen / AWS Open Data), compilées à partir de SRTM, GMTED2010 et ETOPO1 (USGS, NOAA, NASA)
+- Moteur 3D : [Three.js](https://threejs.org/) (licence MIT)
 
 صلى الله عليه وسلم

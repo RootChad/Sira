@@ -24,9 +24,12 @@ La page s'ouvre sur un **voyage immersif**, pensé comme un film : **un chapitre
 - **Barre de vie** en bas de l'écran : année grégorienne, année de l'Hégire, âge, et position sur les 63 années. On peut cliquer pour sauter à un événement. Un menu liste tous les chapitres.
 - **Une voix qui raconte** (facultative) : le récit et chaque phase des simulations sont lus en français, en anglais ou en arabe, avec les voix installées sur l'appareil. La scène attend la fin de la phrase avant de passer à la phase suivante.
 - **Son** facultatif, synthétisé dans le navigateur, sans fichier audio. L'ambiance suit la scène : vent, mer, grillons la nuit, oiseaux des oasis, feux de camp, clochettes des caravanes, rumeur et chocs des batailles, galop, flèches. La musique est une improvisation lente de flûte ney sur un bourdon, dans un maqâm choisi selon l'humeur du chapitre (hijaz, bayati, saba, rast). Voix, ambiance et musique se règlent séparément dans le menu du son.
+- **Filmé comme au cinéma** : pendant les simulations, un « réalisateur » découpe chaque phase en plans, déduits du déroulé de la bataille : un plan d'ensemble qui situe la scène, puis la caméra suit ceux qui agissent (la cavalerie de Khalid qui contourne la colline, filmée de dos au galop ; les champions qui s'avancent ; la poignée de sable), et finit sur un plan rapproché de la mêlée ou un plan large sur l'issue. Coupes au montage, mouvements de grue, caméra portée qui tremble dans la mêlée, titre de chaque phase inscrit sur l'image. Sur un écran en hauteur, les plans se prennent dans la profondeur, par-dessus l'épaule.
 - **Caméra libre** : « Explorer la scène » permet de tourner autour de la scène, de zoomer et de se déplacer, au doigt ou à la souris, pendant que la simulation continue ; on peut aussi la mettre en pause.
 
 Le mouvement est réduit pour les personnes qui l'ont demandé dans leur système (`prefers-reduced-motion`).
+
+**Sur mobile**, la barre du haut tient sur une ligne (les sections Carte, Chiffres, Famille et Quiz sont dans le menu des chapitres). Pendant une simulation, l'image prend tout l'écran : le texte de la phase devient un sous-titre au-dessus de la barre de vie, la fiche du chapitre s'ouvre avec le bouton ⓘ, et la barre du haut s'efface au bout de quelques secondes ; un toucher la rappelle.
 
 ## Explorer
 
@@ -73,6 +76,7 @@ js/app.js           exploration (carte, chiffres, famille, quiz) et langue
 js/world.js         le monde 3D du voyage : relief, ciel, caméra, foules, découvertes (module ES)
 js/world-decor.js   modèles et décors : palmiers, maisons, Ka'ba, mosquées, forts, tentes, grain du sol, mer, nuages, oiseaux
 js/world-battles.js le moteur des batailles : formations, pertes, flèches, poussière, feux, tempête
+js/world-director.js le réalisateur : découpe chaque phase en plans et dirige la caméra
 js/battles-data.js  le déroulé de chaque bataille : unités, positions, phases et textes (fr / en / ar)
 js/photos.js        photographies des lieux (Wikimedia Commons) et visionneuse
 js/voice.js         la voix qui raconte (synthèse vocale du navigateur)

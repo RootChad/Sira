@@ -253,9 +253,13 @@ body.drawer-open { overflow: hidden; }
   .hud-ctrl #hudPrev { display: none; }
 }
 @media (max-width: 760px) {
-  /* la barre supérieure passe sur deux lignes */
-  #stageMap { top: calc(var(--topbar-h) + 104px); }
-  .map-caption { top: calc(var(--topbar-h) + 64px); }
+  /* pendant le voyage, la barre supérieure tient sur une ligne : les sections sont dans le menu des chapitres */
+  body:not(.story-off) .nav { display: none; }
+  body:not(.story-off) .topbar-inner { flex-wrap: nowrap; padding-block: 0; }
+}
+@media (max-width: 380px) {
+  body:not(.story-off) .brand-lat { display: none; }
+  body:not(.story-off) .tools { gap: 6px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -421,13 +425,15 @@ body.story-off .place-photo, body.sheet-open .place-photo, body.photo-open .plac
 body.photo-open { overflow: hidden; }
 
 @media (max-width: 799px) {
-  .sim-panel { top: calc(var(--topbar-h) + 52px); bottom: auto; inset-inline: 10px; width: auto; padding: 10px 12px 8px; }
+  /* sur mobile, le panneau de la simulation devient un sous-titre posé au-dessus de la barre de vie */
+  .sim-panel { top: auto; bottom: calc(var(--hud-h) + env(safe-area-inset-bottom, 0px) + 8px); inset-inline: 8px; width: auto; padding: 10px 12px 8px;
+    background: linear-gradient(rgba(6, 9, 24, 0.72), rgba(6, 9, 24, 0.9)); }
   .bt-title { font-size: 1rem; margin: 2px 0 4px; }
-  .bt-text { font-size: 0.82rem; min-height: 0; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
-  body.battle-on .world-tele, body.battle-on .place-photo { display: none !important; }
-  .place-photo { top: calc(var(--topbar-h) + 60px); bottom: auto; inset-inline-start: 10px; width: 104px; }
-  .place-photo img { height: 66px; }
-  .pp-label { font-size: 0.66rem; padding: 12px 6px 4px; }
+  .bt-text { font-size: 0.86rem; min-height: 0; }
+  body.battle-on .world-tele { display: none !important; }
+  .place-photo { top: calc(var(--topbar-h) + 10px + env(safe-area-inset-top, 0px)); bottom: auto; inset-inline-start: 10px; width: 96px; }
+  .place-photo img { height: 60px; }
+  .pp-label { font-size: 0.64rem; padding: 12px 6px 4px; }
   .pb-nav { top: auto; bottom: 90px; }
 }
 @media (prefers-reduced-motion: reduce) { .pb-spin { animation: none; } .place-photo { animation: none; } }
@@ -479,22 +485,74 @@ body.cam-free .place-photo, body.story-off .cam-btn, body.sheet-open .cam-btn, b
   .sim-panel .bt-toggle { pointer-events: none; }
 }
 @media (max-width: 799px) {
-  /* sur mobile, le panneau de la simulation tient en une ligne ; on l'ouvre pour lire le texte */
+  /* le sous-titre montre trois lignes ; on le touche pour tout lire */
   .sim-panel .bt-toggle { cursor: pointer; }
-  .sim-panel .bt-toggle svg { display: block; }
-  .sim-panel.open .bt-toggle svg { transform: rotate(180deg); }
+  .sim-panel .bt-toggle svg { display: block; transform: rotate(180deg); }
+  .sim-panel.open .bt-toggle svg { transform: none; }
   .sim-panel .bt-step { font-size: 0.66rem; }
-  .sim-panel .bt-title { margin: 1px 0 0; font-size: 0.98rem; }
-  .sim-panel .bt-text { display: none; }
-  .sim-panel.open .bt-text { display: block; margin-top: 6px; }
-  .sim-panel .bt-row { margin-top: 6px; }
-  .sim-panel .bt-steps button { height: 18px; }
-  .sim-panel .bt-steps button::before, .sim-panel .bt-steps button i { top: 7px; bottom: 7px; }
-  .sim-panel .bt-pause, .sim-panel .bt-replay { width: 28px; height: 28px; }
-  .cam-btn { top: auto; bottom: calc(var(--hud-h) + 12px); inset-inline-start: auto; inset-inline-end: 10px; padding: 7px 12px; font-size: 0.8rem; }
-  /* la fiche du chapitre laisse la place au bouton de la caméra */
-  .stage.gl-on ~ main .st-chapter.is-active .st-card { margin-bottom: 44px; }
-  .place-photo { top: calc(var(--topbar-h) + 60px); }
-  body.cam-free .cam-btn { bottom: calc(var(--hud-h) + 12px); }
-  .cam-hint { bottom: calc(var(--hud-h) + 60px); border-radius: 12px; }
+  .sim-panel .bt-title { margin: 1px 0 0; font-size: 1rem; }
+  .sim-panel .bt-text { margin-top: 4px; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+  .sim-panel.open .bt-text { display: block; max-height: 36vh; max-height: 36dvh; overflow-y: auto; }
+  .sim-panel .bt-scale { margin-top: 4px; font-size: 0.7rem; }
+  .sim-panel .bt-row { margin-top: 6px; gap: 8px; }
+  .sim-panel .bt-steps button { height: 30px; }
+  .sim-panel .bt-steps button::before, .sim-panel .bt-steps button i { top: 13px; bottom: 13px; }
+  .sim-panel .bt-pause, .sim-panel .bt-replay, .sim-panel .bt-info { width: 36px; height: 36px; }
+  /* le bouton de la caméra : une icône en haut à droite, sous la barre ; son nom revient en caméra libre */
+  .cam-btn { top: calc(var(--topbar-h) + 10px + env(safe-area-inset-top, 0px)); bottom: auto; inset-inline-start: auto; inset-inline-end: 10px;
+    width: 42px; height: 42px; padding: 0; justify-content: center; }
+  .cam-btn span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  body.cam-free .cam-btn { width: auto; padding: 0 14px; font-size: 0.8rem; }
+  body.cam-free .cam-btn span { position: static; width: auto; height: auto; clip: auto; }
+  .world-tele { top: calc(var(--topbar-h) + 62px + env(safe-area-inset-top, 0px)); inset-inline-end: 10px; }
+  body:not([data-ch="event"]) .world-tele { display: none !important; }
+  .cam-hint { top: calc(var(--topbar-h) + 64px + env(safe-area-inset-top, 0px)); bottom: auto; border-radius: 12px; }
+  /* pendant la simulation, la fiche du chapitre s'efface ; le bouton ⓘ la rappelle en haut de l'écran */
+  body.battle-on .stage.gl-on ~ main .st-chapter.is-active .st-card { opacity: 0; visibility: hidden; pointer-events: none; transform: translateY(12px); }
+  body.battle-on.card-peek .stage.gl-on ~ main .st-chapter.is-active .st-card { opacity: 1; visibility: visible; pointer-events: auto; transform: none;
+    top: calc(var(--topbar-h) + 10px + env(safe-area-inset-top, 0px)); bottom: auto; max-height: 48%; }
+  body.battle-on.card-peek .place-photo, body.battle-on.card-peek .cam-btn, body.battle-on.card-peek .cine { display: none !important; }
+  body.battle-on .hot-label { display: none; }
+  /* l'image d'abord : sans geste pendant quelques secondes, la barre du haut et les boutons s'effacent */
+  .topbar, .cam-btn, .place-photo { transition: transform 0.45s ease, opacity 0.45s ease; }
+  body.cine-hide .topbar { transform: translateY(-110%); }
+  body.cine-hide .cam-btn, body.cine-hide .place-photo { opacity: 0; pointer-events: none; }
 }
+@media (min-width: 800px) {
+  .bt-info { display: none !important; }
+}
+
+/* ---------- Mise en scène des simulations ---------- */
+.cine { position: fixed; inset: 0; z-index: 29; pointer-events: none; }
+/* un léger vignettage, comme à travers un objectif */
+body.battle-on .cine::before { content: ""; position: absolute; inset: 0; background: radial-gradient(ellipse 80% 75% at 50% 45%, transparent 55%, rgba(0, 0, 0, 0.42) 100%); }
+.cine::after { content: ""; position: absolute; inset: 0; background: #000; opacity: 0; }
+.cine.dip::after { animation: dip 0.5s ease-out; }
+@keyframes dip { from { opacity: 0.9; } to { opacity: 0; } }
+.cine-title { position: absolute; top: calc(var(--topbar-h) + 8vh); inset-inline-start: 38%; inset-inline-end: 190px; text-align: center;
+  opacity: 0; transform: translateY(10px); transition: opacity 0.9s ease, transform 0.9s ease; }
+.cine.title-on .cine-title { opacity: 1; transform: none; }
+.ct-k { margin: 0; color: var(--st-gold); font-size: 0.8rem; font-weight: 700; letter-spacing: 0.24em; text-transform: uppercase; text-shadow: 0 1px 8px rgba(0, 0, 0, 0.8); }
+:root[lang="ar"] .ct-k { letter-spacing: 0; font-size: 0.95rem; }
+.ct-t { margin: 6px 0 0; font-family: "Marcellus", "Reem Kufi", serif; font-size: clamp(1.7rem, 1.2rem + 2vw, 3rem); line-height: 1.2; color: #fff8e6; text-shadow: 0 2px 24px rgba(0, 0, 0, 0.75), 0 0 2px rgba(0, 0, 0, 0.6); }
+.cine-title::after { content: ""; display: block; width: 64px; height: 1px; margin: 12px auto 0; background: linear-gradient(90deg, transparent, var(--st-gold), transparent); }
+body.cam-free .cine-title { display: none; }
+.bt-scale { margin: 8px 0 0; color: var(--st-soft); font-size: 0.76rem; }
+.bt-scale:empty { display: none; }
+.bt-scale::before { content: "■ "; color: #2f9a70; }
+.bt-info svg { width: 18px; height: 18px; }
+.bt-info { border-color: var(--st-line); flex: none; }
+.bt-info[aria-pressed="true"] { border-color: var(--st-gold); color: var(--st-gold); }
+@media (max-width: 799px) {
+  .cine-title { top: calc(var(--topbar-h) + 64px); inset-inline: 16px; }
+  body.cine-hide .cine-title { top: calc(var(--topbar-h) + 10px); }
+  .ct-k { font-size: 0.68rem; }
+  .ct-t { font-size: 1.6rem; }
+}
+@media (prefers-reduced-motion: reduce) { .cine.dip::after { animation: none; } .cine-title { transition: none; } }
+
+/* ---------- Explorer, depuis le menu des chapitres ---------- */
+.drawer-explore { margin-top: 22px; padding-top: 14px; border-top: 1px solid var(--st-line); display: flex; flex-wrap: wrap; gap: 8px; }
+.drawer-explore h3 { flex-basis: 100%; margin: 0 0 4px; color: var(--st-gold); font-family: "Marcellus", "Reem Kufi", serif; font-weight: 400; font-size: 1.15rem; }
+.drawer-explore a { padding: 8px 14px; border-radius: 999px; border: 1px solid var(--st-line); color: var(--st-ink); text-decoration: none; font-weight: 700; font-size: 0.92rem; }
+.drawer-explore a:hover, .drawer-explore a:focus-visible { border-color: var(--st-gold); color: var(--st-gold); }

@@ -4,7 +4,7 @@ import {geoMercator, geoPath} from 'd3-geo';
 const topo = JSON.parse(fs.readFileSync(new URL('./node_modules/world-atlas/land-50m.json', import.meta.url)));
 const land = feature(topo, topo.objects.land);
 const W = 600, H = 760;
-const bbox = {type:'Feature',geometry:{type:'MultiPoint',coordinates:[[31.5,10.5],[50,35]]}};
+const bbox = {type:'Feature',geometry:{type:'MultiPoint',coordinates:[[29.6,10.5],[50,35]]}};
 const proj = geoMercator().fitExtent([[0,0],[W,H]], bbox);
 proj.clipExtent([[-5,-5],[W+5,H+5]]);
 const path = geoPath(proj).digits(1);
@@ -14,7 +14,8 @@ const places = {
   uhud:[39.613,24.505], khaybar:[39.29,25.70], hudaybiyya:[39.62,21.45], hunayn:[40.10,21.55],
   tabuk:[36.57,28.38], mutah:[35.70,31.08], bosra:[36.48,32.52], aksum:[38.72,14.13],
   abwa:[39.10,23.10], thawr:[39.85,21.38], quba:[39.617,24.439], jerusalem:[35.235,31.778],
-  yanbu:[38.06,24.09], shuaybah:[39.4,20.9]
+  yanbu:[38.06,24.09], shuaybah:[39.4,20.9],
+  ctesiphon:[44.58,33.09], alexandria:[29.92,31.2], hajar:[49.6,25.4], sanaa:[44.2,15.35]
 };
 const out = {};
 for (const [k,v] of Object.entries(places)) { const p = proj(v); out[k]=[+p[0].toFixed(1), +p[1].toFixed(1)]; }

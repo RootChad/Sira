@@ -7,7 +7,6 @@
   const LANGS = ["fr", "en", "ar"];
   const LOCALES = { fr: "fr-FR", en: "en-GB", ar: "ar-u-nu-arab" };
   const PERIOD_COLOR = { early: "var(--p-early)", mecca: "var(--p-mecca)", medina: "var(--p-medina)" };
-  const START = 570, END = 632;
   const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   const $ = (sel, root = document) => root.querySelector(sel);
@@ -85,192 +84,13 @@
     syncThemeIcon();
   });
 
-  /* ---------- Hero ---------- */
-  function buildStars() {
-    const g = $("#stars");
-    let seed = 7;
-    const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
-    for (let i = 0; i < 110; i++) {
-      const c = svg("circle", {
-        cx: (rnd() * 1200).toFixed(1),
-        cy: (rnd() * rnd() * 300).toFixed(1),
-        r: (0.5 + rnd() * 1.3).toFixed(2),
-        opacity: (0.35 + rnd() * 0.65).toFixed(2)
-      });
-      if (rnd() > 0.7) { c.classList.add("tw"); c.style.animationDelay = (rnd() * 4).toFixed(2) + "s"; }
-      g.appendChild(c);
-    }
-  }
-  function renderStats() {
-    $("#heroStats").innerHTML = T().stats
-      .map((s) => `<div><dt>${num(s.n)}</dt><dd>${esc(s.l)}</dd></div>`).join("");
-  }
-
-  /* ---------- Ruban de vie ---------- */
-  const pct = (y) => ((y - START) / (END - START)) * 100;
-  function renderRibbon() {
-    const box = $("#ribbon");
-    box.innerHTML = "";
-    const width = box.clientWidth || 340;
-    const minGap = 17; // px entre deux points d'une même ligne
-    const lanes = [];
-    const dots = el("div", { class: "ribbon-dots" });
-    let maxLane = 0;
-    S.events.forEach((e) => {
-      const x = (pct(e.year) / 100) * width;
-      let lane = lanes.findIndex((last) => x - last >= minGap);
-      if (lane === -1) { lane = lanes.length; lanes.push(x); } else lanes[lane] = x;
-      maxLane = Math.max(maxLane, lane);
-      const t = tr(e);
-      const b = el("button", {
-        type: "button", class: "ribbon-dot",
-        style: `inset-inline-start:${pct(e.year)}%;bottom:${lane * 18 + 6}px;--c:${PERIOD_COLOR[e.period]}`,
-        "aria-label": `${yearText(e)} — ${t.title}`,
-        "data-id": e.id
-      });
-      b.addEventListener("click", () => openEvent(e.id));
-      b.addEventListener("mouseenter", () => showTip(b, e));
-      b.addEventListener("focus", () => showTip(b, e));
-      b.addEventListener("mouseleave", hideTip);
-      b.addEventListener("blur", hideTip);
-      dots.appendChild(b);
-    });
-    dots.style.height = (maxLane + 1) * 18 + 10 + "px";
-    box.appendChild(dots);
-
-    const bar = el("div", { class: "ribbon-bar" });
-    S.periods.forEach((p) => {
-      bar.appendChild(el("div", {
-        class: "ribbon-seg", style: `flex:${p.to - p.from};--c:${PERIOD_COLOR[p.id]}`, title: tr(p)
-      }, `<span class="seg-long">${esc(tr(p))}</span><span class="seg-short">${digits(p.from)}–${digits(p.to)}</span>`));
-    });
-    box.appendChild(bar);
-
-    const axis = el("div", { class: "ribbon-axis" });
-    // âges selon la tradition (calendrier lunaire)
-    [[570, "0"], [590, "20"], [610, "40"], [622, "53"], [632, "63"]].forEach(([y, a]) => {
-      const edge = y === START ? " first" : y === END ? " last" : "";
-      axis.appendChild(el("div", { class: "ribbon-tick" + edge, style: `inset-inline-start:${pct(y)}%` },
-        `<b>${digits(y)}</b><span>${esc(fmtAge(a))}</span>`));
-    });
-    box.appendChild(axis);
-
-    const legend = el("div", { class: "ribbon-legend" });
-    legend.innerHTML = S.periods.map((p) => `<span><i style="--c:${PERIOD_COLOR[p.id]}"></i>${esc(tr(p))}${SEP()}${digits(p.from)}–${digits(p.to)}</span>`).join("");
-    box.appendChild(legend);
-    box.appendChild(el("div", { class: "ribbon-tip", id: "ribbonTip", hidden: true }));
-  }
-  function showTip(btn, e) {
-    const tip = $("#ribbonTip");
-    if (!tip) return;
-    const t = tr(e);
-    tip.innerHTML = `${esc(t.title)}<small>${yearText(e)}${SEP()}${esc(ahText(e))}</small>`;
-    const box = $("#ribbon").getBoundingClientRect();
-    const r = btn.getBoundingClientRect();
-    let x = r.left + r.width / 2 - box.left;
-    x = Math.max(110, Math.min(box.width - 110, x));
-    if (lang === "ar") tip.style.right = box.width - x + "px", tip.style.left = "";
-    else tip.style.left = x + "px", tip.style.right = "";
-    tip.style.top = r.top - box.top + "px";
-    tip.hidden = false;
-  }
-  function hideTip() { const tip = $("#ribbonTip"); if (tip) tip.hidden = true; }
-
-  /* ---------- Versets ---------- */
-  function renderVerses() {
-    $$("[data-verse]").forEach((box) => {
-      const v = S.verses[box.dataset.verse];
-      box.innerHTML =
-        `<div class="verse-ornament"><svg aria-hidden="true"><use href="#rosette"/></svg></div>` +
-        `<p class="verse-ar" lang="ar">﴿ ${esc(v.ar)} ﴾</p>` +
-        (lang !== "ar" ? `<p class="verse-tr"><span class="sr">${esc(T().verseMeaning)}: </span>${lang === "fr" ? "« " + esc(v.fr) + " »" : "“" + esc(v.en) + "”"}</p>` : "") +
-        `<p class="verse-ref">${esc(tr(v.ref))}</p>`;
-    });
-  }
-
-  /* ---------- Frise ---------- */
-  let filter = "all";
-  function renderFilters() {
-    const box = $("#filters");
-    box.innerHTML = "";
-    const opts = [{ id: "all", label: T().filterAll }].concat(S.periods.map((p) => ({ id: p.id, label: tr(p) })));
-    opts.forEach((o) => {
-      const b = el("button", {
-        type: "button", class: "chip", "aria-pressed": String(filter === o.id),
-        style: o.id !== "all" ? `--c:${PERIOD_COLOR[o.id]}` : ""
-      }, (o.id !== "all" ? "<i></i>" : "") + esc(o.label));
-      b.addEventListener("click", () => { filter = o.id; renderFilters(); applyFilter(); });
-      box.appendChild(b);
-    });
-  }
-  function applyFilter() {
-    $$("#timelineList > li").forEach((li) => { li.hidden = filter !== "all" && li.dataset.period !== filter; });
-  }
-  function renderTimeline() {
-    const list = $("#timelineList");
-    const open = new Set($$(".tl-item.open", list).map((n) => n.dataset.id));
-    list.innerHTML = "";
-    S.periods.forEach((p) => {
-      list.appendChild(el("li", { class: "tl-chapter", "data-period": p.id, style: `--c:${PERIOD_COLOR[p.id]}` },
-        `<h3>${esc(tr(p))}</h3><p>${digits(p.from)} – ${digits(p.to)}</p>`));
-      S.events.filter((e) => e.period === p.id).forEach((e) => {
-        const t = tr(e);
-        const isOpen = open.has(e.id);
-        const age = ageText(e);
-        const li = el("li", {
-          class: "tl-item" + (isOpen ? " open" : ""), id: "ev-" + e.id, "data-id": e.id,
-          "data-period": e.period, style: `--c:${PERIOD_COLOR[e.period]}`
-        });
-        li.innerHTML =
-          `<div class="tl-node" aria-hidden="true"><svg><use href="#i-${e.icon}"/></svg></div>` +
-          `<article class="tl-card">` +
-          `<div class="tl-meta"><span class="tl-year${e.end ? " range" : ""}">${yearText(e)}</span>` +
-          `<span class="tl-sub"><b>${esc(ahText(e))}</b>${age ? SEP() + esc(age) : ""}</span></div>` +
-          `<h4>${esc(t.title)}</h4>` +
-          `<p class="tl-summary">${esc(t.summary)}</p>` +
-          `<p class="tl-details" id="det-${e.id}"${isOpen ? "" : " hidden"}>${esc(t.details)}</p>` +
-          `<div class="tl-actions">` +
-          `<button type="button" class="link-btn" data-act="toggle" aria-expanded="${isOpen}" aria-controls="det-${e.id}">${esc(isOpen ? T().readLess : T().readMore)}</button>` +
-          (e.route || e.place ? `<button type="button" class="link-btn" data-act="map"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>${esc(T().seeOnMap)}</button>` : "") +
-          `</div></article>`;
-        list.appendChild(li);
-      });
-    });
-    applyFilter();
-  }
-  $("#timelineList").addEventListener("click", (ev) => {
-    const btn = ev.target.closest("button[data-act]");
-    if (!btn) return;
-    const li = btn.closest(".tl-item");
-    const e = eventById[li.dataset.id];
-    if (btn.dataset.act === "toggle") toggleEvent(li, !li.classList.contains("open"));
-    else if (btn.dataset.act === "map") {
-      if (e.route) selectRoute(e.route, true); else selectPlace(e.place, true);
-      $("#map").scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth" });
-    }
-  });
-  function toggleEvent(li, on) {
-    li.classList.toggle("open", on);
-    $(".tl-details", li).hidden = !on;
-    const b = $('[data-act="toggle"]', li);
-    b.setAttribute("aria-expanded", String(on));
-    b.textContent = on ? T().readLess : T().readMore;
-  }
+  /* Le voyage : un événement s'ouvre dans son chapitre */
   function openEvent(id) {
-    const li = $("#ev-" + id);
-    if (!li) return;
-    if (li.hidden) { filter = "all"; renderFilters(); applyFilter(); }
-    toggleEvent(li, true);
-    li.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "center" });
-    li.classList.remove("flash");
-    void li.offsetWidth;
-    li.classList.add("flash");
-    setTimeout(() => li.classList.remove("flash"), 2200);
+    if (window.Sira.openChapter) window.Sira.openChapter(id);
   }
 
   /* ---------- Carte ---------- */
   const FULL = { x: 0, y: 0, w: M.w, h: M.h };
-  const HIJAZ = { x: 180, y: 278, w: 165, h: 209 };
   // Position des étiquettes en pixels écran : [dx, dy, ancre]
   const LABEL = {
     mecca: [-9, 4, "end"], medina: [9, 4, "start"], taif: [8, 8, "start"], badr: [-8, 4, "end"],
@@ -340,7 +160,7 @@
       const zoomed = view.w < FULL.w * 0.6;
       animateView(zoomed ? FULL : HIJAZ);
     });
-    window.addEventListener("resize", debounce(() => { scaleMap(); renderRibbon(); }, 150));
+    window.addEventListener("resize", debounce(scaleMap, 150));
     mapBuilt = true;
   }
 
@@ -437,6 +257,7 @@
     return { x, y, w, h };
   }
 
+  const HIJAZ = fitView(["mecca", "medina", "taif", "badr", "khaybar"].map((id) => M.places[id]));
   let travelAnim = 0;
   function drawRoute(id, animate) {
     const p = mapEls.routes[id];
@@ -618,8 +439,10 @@
         : "");
     $$(".quiz-opt", box).forEach((b) => b.addEventListener("click", () => {
       quiz.picked = +b.dataset.j;
-      if (quiz.picked === q.answer) quiz.score++;
+      const good = quiz.picked === q.answer;
+      if (good) quiz.score++;
       renderQuiz();
+      if (good) burst($(`.quiz-opt[data-j="${q.answer}"]`, box));
       $("#quizNext").focus({ preventScroll: true });
     }));
     const next = $("#quizNext");
@@ -630,6 +453,22 @@
     });
     const rev = $("[data-review]", box);
     if (rev) rev.addEventListener("click", () => openEvent(rev.dataset.review));
+  }
+
+  // Petite gerbe d'étoiles dorées sur une bonne réponse
+  function burst(target) {
+    if (reduceMotion || !target) return;
+    const r = target.getBoundingClientRect();
+    for (let i = 0; i < 14; i++) {
+      const s = el("span", { class: "spark", "aria-hidden": "true" });
+      const ang = (i / 14) * Math.PI * 2, d = 40 + Math.random() * 50;
+      s.style.left = r.left + r.width / 2 + "px";
+      s.style.top = r.top + r.height / 2 + "px";
+      s.style.setProperty("--dx", Math.cos(ang) * d + "px");
+      s.style.setProperty("--dy", Math.sin(ang) * d + "px");
+      document.body.appendChild(s);
+      setTimeout(() => s.remove(), 900);
+    }
   }
 
   /* ---------- Application de la langue ---------- */
@@ -644,11 +483,6 @@
     $$("[data-i18n]").forEach((n) => { n.textContent = get(n.dataset.i18n) ?? n.textContent; });
     $$("[data-i18n-aria]").forEach((n) => n.setAttribute("aria-label", get(n.dataset.i18nAria)));
     $$(".lang button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.lang === l)));
-    renderStats();
-    renderRibbon();
-    renderVerses();
-    renderFilters();
-    renderTimeline();
     if (!mapBuilt) buildMap();
     renderMapText();
     renderRouteList();
@@ -656,6 +490,7 @@
     renderCharts();
     renderFamily();
     renderQuiz();
+    window.Sira.onLang.forEach((fn) => fn(l));
   }
   $$(".lang button").forEach((b) => b.addEventListener("click", () => applyLang(b.dataset.lang)));
 
@@ -683,11 +518,27 @@
     else if (n.nodeType === 3 && n.parentNode) wrapPbuh(n.parentNode);
   }))).observe(document.body, { childList: true, subtree: true });
 
+  /* ---------- Utilitaires partagés avec le voyage (story.js) ---------- */
+  window.Sira = {
+    lang: () => lang, T, tr, num, digits, SEP, yearText, ahText, ageText,
+    onLang: [],
+    // Depuis un chapitre : montrer l'itinéraire ou le lieu sur la carte
+    showOnMap(id) {
+      const e = eventById[id];
+      if (!e) return;
+      if (window.Sira.unsnap) window.Sira.unsnap();
+      $("#map").scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth" });
+      setTimeout(() => { if (e.route) selectRoute(e.route, true); else selectPlace(e.place, true); }, reduceMotion ? 0 : 500);
+    }
+  };
+
   /* ---------- Démarrage ---------- */
-  buildStars();
-  wrapPbuh(document.body);
-  syncThemeIcon();
-  window.matchMedia("(prefers-color-scheme: dark)").addEventListener?.("change", syncThemeIcon);
-  applyLang(lang);
-  selectRoute("hijra", false);
+  document.addEventListener("DOMContentLoaded", () => {
+    wrapPbuh(document.body);
+    syncThemeIcon();
+    window.matchMedia("(prefers-color-scheme: dark)").addEventListener?.("change", syncThemeIcon);
+    applyLang(lang);
+    selectRoute("hijra", false);
+    if (window.Sira.storyInit) window.Sira.storyInit();
+  });
 })();

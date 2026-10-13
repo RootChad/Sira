@@ -153,8 +153,14 @@
 
 <!-- Barre de vie : année, calendrier hégirien, âge -->
 <div class="hud" id="hud">
+  <span class="hud-play-bar" id="hudPlayBar"></span>
   <div class="hud-inner">
     <p class="hud-year"><b id="hudYear">570</b></p>
+    <div class="hud-ctrl">
+      <button type="button" id="hudPrev" data-i18n-aria="prevChapter" aria-label="Chapitre précédent"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 15l6-6 6 6"/></svg></button>
+      <button type="button" id="hudPlay" aria-pressed="false" data-i18n-aria="autoplay" aria-label="Lecture automatique"><svg viewBox="0 0 24 24" aria-hidden="true"><path class="i-play" d="M8 5.5v13l11-6.5z"/><path class="i-pause" d="M7 5h3.5v14H7zM13.5 5H17v14h-3.5z"/></svg></button>
+      <button type="button" id="hudNext" data-i18n-aria="nextChapter" aria-label="Chapitre suivant"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
+    </div>
     <div class="hud-mid">
       <p class="hud-meta"><span id="hudMeta"></span> <span class="hud-title" id="hudTitle"></span></p>
       <div class="hud-track" id="hudTrack"></div>

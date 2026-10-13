@@ -6,12 +6,13 @@ Disponible en **français**, **anglais** et **arabe** (avec mise en page de droi
 
 ## Le voyage
 
-La page s'ouvre sur un **voyage immersif** : on fait défiler la vie du Prophète ﷺ et le décor change autour du texte.
+La page s'ouvre sur un **voyage immersif**, pensé comme un film : **un chapitre = un écran**. Un geste (molette, glissement, flèche du clavier) fait passer au chapitre suivant, et la scène s'anime d'elle-même : la foule se forme, le tracé se dessine, la caméra avance lentement. Le bouton lecture de la barre du bas déroule le voyage tout seul, au rythme du texte.
 
 - **36 scènes** dessinées par le code : la nuit de La Mecque et les oiseaux d'Abraha, la tente de Halima dans le désert, les caravanes de Syrie, la lumière de la grotte de Hira avec le mot « اقرأ », la traversée vers l'Abyssinie, l'arc lumineux de l'Isra' vers Jérusalem, la construction de la mosquée de Médine brique par brique, la boussole de la qibla qui pivote, la Coupole verte…
 - **Les foules sont faites de points** : 313 à Badr face à 1 000, les archers d'Uhud qui quittent la colline, le fossé, 10 000 compagnons qui convergent vers La Mecque pendant que tombent les 360 idoles, plus de 100 000 pèlerins à 'Arafat. Une légende indique combien de personnes représente chaque point.
 - **Cartes animées** : le tracé de l'Hégire se dessine au défilement, avec le compteur de kilomètres ; les lettres aux souverains partent de Médine vers Jérusalem, Ctésiphon, Aksoum, Alexandrie, Bahreïn et Bosra.
 - **3D avec Three.js** : les foules deviennent des milliers de sphères éclairées, vues en perspective, et la caméra tourne doucement avec le défilement. Pendant l'Hégire, l'Arabie apparaît en relief et la caméra suit le voyageur ; les lettres aux souverains s'élèvent en arcs au-dessus de la carte. Sans WebGL, le site reprend automatiquement la version 2D.
+- **Carte sans quitter le récit** : « Voir sur la carte » ouvre une carte par-dessus le chapitre, cadrée sur l'itinéraire ou le lieu ; on la ferme et on retrouve sa place.
 - **Barre de vie** en bas de l'écran : année grégorienne, année de l'Hégire, âge, et position sur les 63 années. On peut cliquer pour sauter à un événement. Un menu liste tous les chapitres.
 - **Ambiance sonore** facultative (vent, mer, carillon), synthétisée dans le navigateur, sans fichier audio.
 

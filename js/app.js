@@ -526,6 +526,7 @@
     showOnMap(id) {
       const e = eventById[id];
       if (!e) return;
+      if (window.Sira.unsnap) window.Sira.unsnap();
       $("#map").scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth" });
       setTimeout(() => { if (e.route) selectRoute(e.route, true); else selectPlace(e.place, true); }, reduceMotion ? 0 : 500);
     }

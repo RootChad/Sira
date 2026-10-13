@@ -379,6 +379,7 @@
             <p class="st-intro-lead">${esc(T.introLead)}</p>
             <div class="st-intro-actions">
               <button type="button" class="st-btn st-btn-gold" data-go="p-early">${esc(T.start)}</button>
+              <button type="button" class="st-btn st-btn-line" data-film>${esc(T.watchFilm)}</button>
               <button type="button" class="st-btn st-btn-line" data-sound aria-pressed="${Sound.on}">${esc(Sound.on ? T.soundOff : T.soundOn)}</button>
             </div>
             <p class="st-cue" aria-hidden="true"><span></span>${esc(T.scrollCue)}</p>
@@ -446,6 +447,7 @@
     }
     const go = ev.target.closest("[data-go]");
     if (go) { goTo(go.dataset.go); return; }
+    if (ev.target.closest("[data-film]")) { setPlaying(true); goTo("p-early"); return; }
     const snd = ev.target.closest("[data-sound]");
     if (snd) { toggleSound(); return; }
     const mapLink = ev.target.closest("[data-map]");
@@ -463,8 +465,7 @@
     if (!el) return;
     const card = $(".st-card", el);
     if (openCard && card) setOpen(card, true);
-    const target = el.classList.contains("st-chapter") ? el.offsetTop + el.offsetHeight * 0.18 : el.offsetTop;
-    window.scrollTo({ top: target, behavior: reduceMotion ? "auto" : "smooth" });
+    window.scrollTo({ top: el.offsetTop, behavior: reduceMotion ? "auto" : "smooth" });
   }
 
   /* ------------------------------------------------------------------ */
@@ -611,21 +612,27 @@
   let storyVisible = true;
   function onScroll() {
     if (!sections.length) return;
-    const line = window.innerHeight * 0.55;
-    let idx = -1, p = 0;
+    const line = window.innerHeight * 0.5;
+    let idx = -1;
     for (let i = 0; i < sections.length; i++) {
       const r = sections[i].getBoundingClientRect();
-      if (r.top <= line && r.bottom > line) { idx = i; p = (line - r.top) / r.height; break; }
+      if (r.top <= line && r.bottom > line) { idx = i; break; }
     }
-    if (idx === -1) {
-      const first = sections[0].getBoundingClientRect();
-      idx = first.top > line ? 0 : sections.length - 1;
-      p = idx === 0 ? 0 : 1;
-    }
-    progress = clamp(p);
+    if (idx === -1) idx = sections[0].getBoundingClientRect().top > line ? 0 : sections.length - 1;
     if (idx !== activeIndex) setActive(idx);
-    // marqueur continu sur la barre de vie
-    const c = CHAPTERS[idx];
+  }
+  // la scène s'anime d'elle-même : la progression suit le temps passé sur le chapitre
+  let chapterT0 = 0;
+  const chapterDur = (c) => (c.type === "event" ? (c.len || 1.25) * 4000 : 4000);
+  const readTime = (c) => {
+    if (c.type === "intro") return 800;
+    if (c.type !== "event") return 6500;
+    const words = U.tr(eventById[c.ev]).summary.split(/\s+/).length;
+    return Math.max(6500, 2500 + words * 320);
+  };
+  function updateMarker() {
+    const c = CHAPTERS[activeIndex];
+    if (!c) return;
     let year = START;
     if (c.type === "event") {
       const k = storyEvents.indexOf(c);
@@ -639,6 +646,13 @@
   function setActive(idx) {
     activeIndex = idx;
     const c = CHAPTERS[idx];
+    chapterT0 = performance.now();
+    progress = reduceMotion ? 1 : 0;
+    const st = $("#stage");
+    st.classList.remove("kb");
+    void st.offsetWidth;
+    st.style.setProperty("--kb", (chapterDur(c) + readTime(c)) / 1000 + "s");
+    if (!reduceMotion && c.scene !== "map") st.classList.add("kb");
     sections.forEach((s, i) => s.classList.toggle("is-active", i === idx));
     $$("#sceneSvg .scene").forEach((g) => g.classList.toggle("on", g.dataset.scene === c.scene));
     const stage = $("#stage");
@@ -669,6 +683,73 @@
     $$("#drawerList [data-jump]").forEach((b) => b.classList.toggle("current", b.dataset.jump === c.id));
     Sound.scene(c);
   }
+  /* --- lecture automatique et navigation --- */
+  let playing = false;
+  function setPlaying(on) {
+    playing = on;
+    const b = $("#hudPlay");
+    b.setAttribute("aria-pressed", String(on));
+    b.setAttribute("aria-label", on ? U.T().pause : U.T().autoplay);
+    // la scène déjà jouée le reste ; seul le temps de lecture repart de zéro
+    const c = CHAPTERS[activeIndex];
+    if (on && c) chapterT0 = Math.max(chapterT0, performance.now() - chapterDur(c));
+  }
+  const step = (d) => { const i = clamp(activeIndex + d, 0, CHAPTERS.length - 1); goTo(CHAPTERS[i].id); };
+  $("#hudPlay").addEventListener("click", () => setPlaying(!playing));
+  $("#hudPrev").addEventListener("click", () => step(-1));
+  $("#hudNext").addEventListener("click", () => step(1));
+  // le calage écran par écran ne vaut que pour le voyage : on le lève pour rejoindre l'exploration
+  let snapHold = 0;
+  const unsnap = () => { document.documentElement.classList.remove("snap"); snapHold = performance.now() + 2500; };
+  U.unsnap = unsnap;
+  document.addEventListener("click", (ev) => {
+    const a = ev.target.closest('a[href^="#"]');
+    if (a && !a.getAttribute("href").startsWith("#ch-")) unsnap();
+  }, true);
+  // le calage revient seulement quand le défilement s'est arrêté dans le voyage
+  let settleTimer = 0;
+  window.addEventListener("scroll", () => {
+    clearTimeout(settleTimer);
+    const settle = () => {
+      if (performance.now() < snapHold) { settleTimer = setTimeout(settle, 300); return; }
+      document.documentElement.classList.toggle("snap", storyVisible);
+    };
+    settleTimer = setTimeout(settle, 350);
+  }, { passive: true });
+
+  // un geste de molette ou une touche = un chapitre
+  const busy = () => document.body.classList.contains("sheet-open") || document.body.classList.contains("drawer-open");
+  let wheelAcc = 0, wheelLock = 0;
+  window.addEventListener("wheel", (ev) => {
+    if (!storyVisible || busy() || ev.ctrlKey) return;
+    const card = ev.target.closest(".st-card, .drawer-panel");
+    if (card && card.scrollHeight > card.clientHeight + 2) {
+      const atTop = card.scrollTop <= 0, atEnd = card.scrollTop + card.clientHeight >= card.scrollHeight - 2;
+      if ((ev.deltaY < 0 && !atTop) || (ev.deltaY > 0 && !atEnd)) return; // on lit d'abord la fin du texte
+    }
+    const last = activeIndex === CHAPTERS.length - 1;
+    if (last && ev.deltaY > 0) return; // après le dernier écran, on rejoint l'exploration librement
+    ev.preventDefault();
+    const now = performance.now();
+    if (now < wheelLock) return;
+    wheelAcc += ev.deltaMode === 1 ? ev.deltaY * 30 : ev.deltaY;
+    if (Math.abs(wheelAcc) > 40) {
+      step(Math.sign(wheelAcc));
+      wheelAcc = 0;
+      wheelLock = now + 850;
+    }
+  }, { passive: false });
+  window.addEventListener("keydown", (ev) => {
+    if (!storyVisible || busy() || ev.target.closest("input, textarea, select, [contenteditable]")) return;
+    const down = ["ArrowDown", "PageDown", " "].includes(ev.key) && !ev.shiftKey;
+    const up = ["ArrowUp", "PageUp"].includes(ev.key) || (ev.key === " " && ev.shiftKey);
+    if (!down && !up) return;
+    if (down && activeIndex === CHAPTERS.length - 1) return;
+    if (ev.target.closest("button, a") && ev.key === " ") return;
+    ev.preventDefault();
+    step(down ? 1 : -1);
+  });
+
   function flip(el, text) {
     if (el.textContent === text) return;
     el.classList.remove("flip");
@@ -1269,6 +1350,19 @@
     last = now;
     if (storyVisible) {
       const t = now / 1000;
+      const c = CHAPTERS[activeIndex];
+      if (c) {
+        const el = now - chapterT0;
+        progress = reduceMotion ? 1 : clamp(el / chapterDur(c));
+        updateMarker();
+        // lecture automatique : on passe au chapitre suivant quand la scène et le texte ont eu leur temps
+        const total = Math.max(chapterDur(c), readTime(c)) + 600;
+        $("#hudPlayBar").style.width = playing ? (clamp(el / total) * 100).toFixed(1) + "%" : "0";
+        if (playing && el > total && !document.body.classList.contains("sheet-open") && !document.body.classList.contains("drawer-open")) {
+          if (activeIndex < CHAPTERS.length - 1) { chapterT0 = now; goTo(CHAPTERS[activeIndex + 1].id); }
+          if (activeIndex + 1 >= CHAPTERS.length - 1) setPlaying(false);
+        }
+      }
       drawSky(dt, t);
       if (gl) U.stage3d.render(dt, t, progress, { W, H, fb, mobile });
       drawFx(dt, t);
@@ -1288,8 +1382,11 @@
     new IntersectionObserver((entries) => {
       storyVisible = entries[0].isIntersecting;
       document.body.classList.toggle("story-off", !storyVisible);
+      if (!storyVisible) document.documentElement.classList.remove("snap");
+      if (!storyVisible && playing) setPlaying(false);
     }, { rootMargin: "-80px 0px -30% 0px" }).observe($("#story"));
-    U.onLang.push(() => { renderStory(); resize(); if (!$("#mapSheet").hidden) renderSheet(); $("#soundBtn").setAttribute("aria-label", Sound.on ? U.T().soundOff : U.T().soundOn); });
+    document.documentElement.classList.add("snap");
+    U.onLang.push(() => { renderStory(); resize(); setPlaying(playing); if (!$("#mapSheet").hidden) renderSheet(); $("#soundBtn").setAttribute("aria-label", Sound.on ? U.T().soundOff : U.T().soundOn); });
     requestAnimationFrame(frame);
   }
 

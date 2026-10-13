@@ -534,8 +534,80 @@ export function createBattles(env, decor) {
     return out;
   }
 
+  /* --- pour la caméra : qui agit pendant une phase, et où il se trouve --- */
+  // centre d'une clé (mètres) ; un tracé a pour centre son milieu
+  function keyCenter(K) {
+    const P = K[4] === "path" && K[5] && K[5].path;
+    if (!P) return [K[1], K[2]];
+    let e = 0, n = 0;
+    for (const q of P) { e += q[0]; n += q[1]; }
+    return [e / P.length, n / P.length];
+  }
+  const SC = { A: null, B: null, f: 0 };
+  function centerAt(u, pm) {
+    const { A, B: Bk, f } = seg(u, pm, SC);
+    const a = keyCenter(A), b = keyCenter(Bk);
+    return [lerp(a[0], b[0], f), lerp(a[1], b[1], f)];
+  }
+  // chaque unité reçoit une note : distance parcourue, mêlée, étiquette du récit, flèches tirées
+  function analyze(a, b) {
+    if (!B) return { units: [], pebbles: [] };
+    const list = [];
+    for (const u of units) {
+      const a0 = Math.max(a, u.show ? u.show[0] : 0), b0 = Math.min(b, u.show ? u.show[1] : 1);
+      if (b0 - a0 < 0.01) continue;
+      let alive = u.N;
+      for (const [, l1, c] of u.losses) if (l1 < a0) alive -= c;
+      if (alive <= 0) continue;
+      const c0 = centerAt(u, a0);
+      let prev = c0, travel = 0, melee = false;
+      for (let k = 1; k <= 8; k++) {
+        const pm = lerp(a0, b0, k / 8), c = centerAt(u, pm);
+        travel += Math.hypot(c[0] - prev[0], c[1] - prev[1]);
+        prev = c;
+        const s = seg(u, pm, SC);
+        if (s.A[4] === "melee" || (s.B[4] === "melee" && s.f > 0.3)) melee = true;
+      }
+      const herd = u.kind === "camel" || u.kind === "sheep";
+      let score = travel * (u.kind === "cav" ? 1.4 : 1) + (melee ? 250 : 0);
+      if (u.label && u.labelP && (Math.min(b, u.labelP[1]) - Math.max(a, u.labelP[0])) / (b - a) > 0.4) score += 500;
+      else if (u.label) score += 60;
+      if (herd) score *= 0.25;
+      list.push({ id: u.id, side: u.side, kind: u.kind, herd, score, travel, melee, small: u.N <= 6,
+        dir: [prev[0] - c0[0], prev[1] - c0[1]], mid: centerAt(u, (a0 + b0) / 2) });
+    }
+    const pebbles = [];
+    for (const ev of B.events || []) {
+      if (ev.p1 <= a || ev.p0 >= b) continue;
+      if (ev.type === "arrows" && typeof ev.from === "string") { const x = list.find((o) => o.id === ev.from); if (x) { x.score += 120; x.shoots = ev.to; } }
+      if (ev.type === "pebbles") pebbles.push({ p0: ev.p0, p1: ev.p1, from: W(ev.from[0], ev.from[1], [0, 0]), to: W(ev.to[0], ev.to[1], [0, 0]) });
+    }
+    list.sort((x, y) => y.score - x.score);
+    return { units: list, pebbles };
+  }
+  // où se tiennent maintenant ces unités : centre (km, repère du monde) et rayon qui les contient
+  function subject(ids) {
+    const cs = [];
+    for (const id of ids) {
+      const u = units.find((x) => x.id === id);
+      if (!u || u.vis < 0.3) continue;
+      const step = Math.max(1, Math.floor(u.N / 80));
+      let se = 0, sn = 0, c = 0;
+      for (let i = 0; i < u.N; i += step) { se += u.cur[i * 2]; sn += u.cur[i * 2 + 1]; c++; }
+      se /= c; sn /= c;
+      let r2 = 0;
+      for (let i = 0; i < u.N; i += step) r2 += (u.cur[i * 2] - se) ** 2 + (u.cur[i * 2 + 1] - sn) ** 2;
+      cs.push([se, sn, Math.sqrt(r2 / c) * 1.7 + u.sp * 2]);
+    }
+    if (!cs.length) return null;
+    const e = cs.reduce((s, c) => s + c[0], 0) / cs.length, n = cs.reduce((s, c) => s + c[1], 0) / cs.length;
+    const r = Math.max(...cs.map((c) => Math.hypot(c[0] - e, c[1] - n) + c[2]));
+    W(e, n, wv);
+    return { x: wv[0], z: wv[1], r: Math.max(18, r) * KM };
+  }
+
   return {
-    has: (id) => !!BATTLES[id], def: (id) => BATTLES[id], start, stop, update, labels,
+    has: (id) => !!BATTLES[id], def: (id) => BATTLES[id], start, stop, update, labels, analyze, subject,
     get scale() { return scaleEff; }, stats, get phase() { return phase; }, get active() { return !!B; },
     camFor: (ph) => { const c = B.phases[ph].cam; return { x: Ox + c[0] * KM, z: Oz - c[1] * KM, dist: c[2], pitch: c[3], head: c[4] }; }
   };

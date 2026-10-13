@@ -7,6 +7,7 @@ import * as THREE from "./vendor/three.module.min.js";
 import { Sky } from "./vendor/Sky.js";
 import { createDecor } from "./world-decor.js";
 import { createBattles } from "./world-battles.js";
+import { createDirector } from "./world-director.js";
 
 const U = window.Sira;
 const S = window.SIRA;
@@ -300,6 +301,8 @@ function setup({ region, locals, hAt, yAt }) {
   const battles = createBattles(benv, decor);
   // sur un écran étroit, la caméra recule un peu pour garder les deux armées dans le cadre
   const bcam = (ph) => { const c = battles.camFor(ph); if (mobile()) c.dist *= 1.45; return c; };
+  // le réalisateur : pendant une simulation, la caméra filme les moments clés, plan par plan
+  const director = createDirector(battles);
   const localG = new THREE.Group();
   scene.add(localG);
   // la mer suit la caméra, à la taille de la vue : un plan géant fausse la profondeur
@@ -405,7 +408,7 @@ function setup({ region, locals, hAt, yAt }) {
     closeCard();
     // une bataille (ou une scène simulée) prend la main sur la caméra et l'heure
     battle = battles.has(c.id) && battles.start(c.id) ? battles.def(c.id) : null;
-    if (!battle) battles.stop();
+    if (!battle) { battles.stop(); director.stop(); }
     view.battle = !!battle;
     bPhase = 0; spoken = -1; voiceCut = false; paused = false;
     if (free) setFree(false, true);
@@ -416,6 +419,8 @@ function setup({ region, locals, hAt, yAt }) {
     const bump = Math.max(0, travelKm * 0.9 - (cam.dist + to.dist) / 2);
     fly = reduceMotion ? null : { from: { ...cam }, to, t0, dur: 1600 + Math.min(3200, Math.sqrt(travelKm) * 90), bump };
     if (!fly) Object.assign(cam, to);
+    if (battle) { director.reset(battle, performance.now() / 1000, to.head); cineTitle(0, fly ? fly.dur * 0.6 : 300); }
+    else cineTitle(-1);
     hourFrom = hour; hourTo = battle ? battle.phases[0].hour : view.cycle ? 22 : view.hour; hourT0 = performance.now();
     // décor du chapitre
     disposeGroup();
@@ -593,7 +598,7 @@ function setup({ region, locals, hAt, yAt }) {
     if (fly) {
       const k = clamp((now - fly.t0) / fly.dur), e = k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2;
       cam.x = lerp(fly.from.x, fly.to.x, e); cam.z = lerp(fly.from.z, fly.to.z, e);
-      cam.dist = lerp(fly.from.dist, fly.to.dist, e) + fly.bump * Math.sin(Math.PI * e);
+      cam.dist = Math.exp(lerp(Math.log(fly.from.dist), Math.log(fly.to.dist), e)) + fly.bump * Math.sin(Math.PI * e);
       cam.pitch = lerp(fly.from.pitch, fly.to.pitch, e) + (fly.bump > 0 ? 22 * Math.sin(Math.PI * e) : 0);
       cam.head = lerp(fly.from.head, sh(fly.from.head, fly.to.head), e);
       if (k >= 1) fly = null;
@@ -626,16 +631,12 @@ function setup({ region, locals, hAt, yAt }) {
       const ph = battles.update(dt, t, p, pxScale);
       if (ph !== bPhase && ph >= 0) {
         bPhase = ph;
-        // en caméra libre, on ne reprend pas la main : seul le récit avance
-        if (!free) {
-          const to = bcam(ph);
-          const travelKm = Math.hypot(to.x - cam.x, to.z - cam.z);
-          fly = reduceMotion ? null : { from: { ...cam }, to, t0: now, dur: 2200 + Math.min(2600, Math.sqrt(travelKm) * 160), bump: Math.max(0, travelKm * 0.6 - (cam.dist + to.dist) / 2) };
-          if (!fly) Object.assign(cam, to);
-        }
         hourFrom = hour; hourTo = battle.phases[ph].hour; hourT0 = now;
         renderPanel();
+        if (!free) cineTitle(ph, 250);
       }
+      // en caméra libre, on ne reprend pas la main : seul le récit avance
+      if (!free && ph >= 0) direct(dt, now, t, p, ph);
       if (ph !== spoken && ph >= 0) {
         spoken = ph;
         const x = U.tr(battle.phases[ph]);
@@ -659,7 +660,12 @@ function setup({ region, locals, hAt, yAt }) {
     // placement de la caméra
     const tx = cam.x, tz = cam.z;
     const ty = Math.max(0, yAt(tx, tz));
-    const pr = cam.pitch * D2R, hr = cam.head * D2R;
+    let pr = cam.pitch * D2R, hr = cam.head * D2R;
+    if (battle && !free && !reduceMotion) {
+      const stt = battles.stats, shake = (stt.melee * 0.8 + stt.gallop * 0.6) * clamp(0.5 / cam.dist, 0.25, 1);
+      hr += (Math.sin(t * 0.83) * 0.3 + Math.sin(t * 1.9 + 1) * 0.12 + Math.sin(t * 14.3) * 0.45 * shake) * D2R;
+      pr += (Math.sin(t * 0.67 + 2) * 0.22 + Math.sin(t * 17.1 + 3) * 0.32 * shake) * D2R;
+    }
     const fx = Math.sin(hr), fz = -Math.cos(hr);
     const cx = tx - fx * Math.cos(pr) * cam.dist, cz = tz - fz * Math.cos(pr) * cam.dist;
     let cy = ty + Math.sin(pr) * cam.dist;
@@ -677,7 +683,7 @@ function setup({ region, locals, hAt, yAt }) {
     // le sujet se place à côté du texte
     const rtl = document.documentElement.dir === "rtl";
     // sur mobile, le sujet se place entre le panneau du haut et la fiche du bas
-    const ax = mobile() ? W / 2 : W * (rtl ? 0.34 : 0.66), ay = mobile() ? H * (battle && !free ? 0.42 : free ? 0.48 : 0.32) : H * 0.5;
+    const ax = mobile() ? W / 2 : W * (rtl ? 0.34 : 0.66), ay = mobile() ? H * (battle && !free ? 0.38 : free ? 0.48 : 0.32) : H * 0.5;
     camera.setViewOffset(W, H, W / 2 - ax, H / 2 - ay, W, H);
     scene.fog.density = 0.24 / Math.max(cam.dist, 0.5);
     sky.position.copy(camera.position);
@@ -791,8 +797,6 @@ function setup({ region, locals, hAt, yAt }) {
         const [x, y, ok] = toScreen(new THREE.Vector3(x3, y3, z3));
         if (ok) label(x, y, big, small, "center");
       }
-      const sc = battles.scale;
-      legend(sc === 1 ? T.pawn.one : T.pawn.many.replace("{n}", U.num(sc)));
     }
     if (F && crowd) {
       for (const [lx, lz, big, small] of F.labels()) {
@@ -827,11 +831,16 @@ function setup({ region, locals, hAt, yAt }) {
     if (!panel) return;
     document.body.classList.toggle("battle-on", !!battle);
     panel.hidden = !battle;
-    if (!battle) return;
+    if (!battle) { document.body.classList.remove("card-peek", "cine-hide"); return; }
+    wake();
     const T = U.T(), ph = battle.phases[Math.max(0, bPhase)], n = battle.phases.length;
     panel.querySelector(".bt-step").textContent = `${T.simulation} · ${T.phase} ${U.num(Math.max(0, bPhase) + 1)}/${U.num(n)}`;
     panel.querySelector(".bt-title").textContent = U.tr(ph).t;
     panel.querySelector(".bt-text").textContent = U.tr(ph).d;
+    const sc = battles.scale, scale = panel.querySelector(".bt-scale");
+    if (scale) scale.textContent = sc === 1 ? T.pawn.one : T.pawn.many.replace("{n}", U.num(sc));
+    const info = panel.querySelector(".bt-info");
+    if (info) info.setAttribute("aria-pressed", String(document.body.classList.contains("card-peek")));
     const steps = panel.querySelector(".bt-steps");
     if (steps.children.length !== n || steps.dataset.ch !== chapter.id || steps.dataset.lang !== document.documentElement.lang) {
       steps.dataset.ch = chapter.id; steps.dataset.lang = document.documentElement.lang;
@@ -853,7 +862,67 @@ function setup({ region, locals, hAt, yAt }) {
     if (ev.target.closest(".bt-replay") && U.seekChapter) { voiceCut = true; spoken = -1; paused = false; U.seekChapter(0); renderPanel(); }
     if (ev.target.closest(".bt-pause")) { paused = !paused; renderPanel(); }
     if (ev.target.closest(".bt-toggle")) panel.classList.toggle("open");
+    if (ev.target.closest(".bt-info")) { document.body.classList.toggle("card-peek"); renderPanel(); }
   });
+
+  /* --- la mise en scène : plans, coupes, titres --- */
+  function direct(dt, now, t, p, ph) {
+    const D = director.want(p, ph, t, { base: bcam(ph), cur: cam, aspect: size.W / Math.max(1, size.H), mobile: mobile() });
+    if (!D) return;
+    const to = { x: D.x, z: D.z, dist: D.dist, pitch: D.pitch, head: D.head };
+    if (D.isNew) {
+      // un nouveau plan : on coupe quand il est loin du précédent, sinon la caméra glisse jusqu'à lui
+      const gap = Math.hypot(to.x - cam.x, to.z - cam.z), ratio = Math.abs(Math.log(to.dist / cam.dist));
+      if (reduceMotion || gap > Math.max(cam.dist, to.dist) * 0.8 || ratio > 2.2) { Object.assign(cam, to); fly = null; if (!reduceMotion) dip(); }
+      else fly = { from: { ...cam }, to, t0: now, dur: D.newPhase ? 2600 : 2200, bump: 0, track: true };
+      return;
+    }
+    if (fly) { if (fly.track) fly.to = to; return; } // le mouvement en cours vise le sujet là où il se trouve
+    // le plan suit son sujet, avec l'inertie d'une caméra tenue
+    const k = 1 - Math.exp(-dt * 2.2), kh = 1 - Math.exp(-dt * 1.6);
+    cam.x += (to.x - cam.x) * k; cam.z += (to.z - cam.z) * k;
+    cam.dist *= Math.exp(Math.log(to.dist / cam.dist) * kh);
+    cam.pitch += (to.pitch - cam.pitch) * kh;
+    cam.head += (((to.head - cam.head + 540) % 360) - 180) * kh;
+  }
+  const cine = document.getElementById("cine");
+  let titleT = 0, titleT2 = 0;
+  // un fondu au noir très bref, comme une coupe au montage
+  function dip() {
+    if (!cine) return;
+    cine.classList.remove("dip");
+    void cine.offsetWidth;
+    cine.classList.add("dip");
+  }
+  // le titre de la phase s'inscrit sur l'image, puis s'efface
+  function cineTitle(ph, delay = 0) {
+    if (!cine) return;
+    clearTimeout(titleT); clearTimeout(titleT2);
+    cine.classList.remove("title-on");
+    if (ph < 0 || !battle || reduceMotion) return;
+    titleT = setTimeout(() => {
+      if (!battle || free) return;
+      const T = U.T(), x = battle.phases[ph];
+      const ev = chapter && S.events.find((e) => e.id === chapter.ev);
+      cine.querySelector(".ct-k").textContent = ph === 0 && ev ? U.tr(ev).title : `${T.phase} ${U.num(ph + 1)}/${U.num(battle.phases.length)}`;
+      cine.querySelector(".ct-t").textContent = U.tr(x).t;
+      cine.classList.add("title-on");
+      titleT2 = setTimeout(() => cine.classList.remove("title-on"), ph === 0 ? 4200 : 3200);
+    }, delay);
+  }
+  // sur mobile, pendant la simulation, l'interface s'efface pour laisser l'image ; un toucher la rappelle
+  let idleT = 0;
+  function wake() {
+    document.body.classList.remove("cine-hide");
+    clearTimeout(idleT);
+    if (!battle || !mobile()) return;
+    idleT = setTimeout(() => {
+      const b = document.body.classList;
+      if (battle && mobile() && !free && !paused && !b.contains("drawer-open") && !b.contains("sheet-open") && !b.contains("card-peek") && document.getElementById("audioMenu").hidden) b.add("cine-hide");
+    }, 3500);
+  }
+  document.addEventListener("pointerdown", wake, true);
+  document.addEventListener("keydown", wake, true);
 
   function handles(c) { return !!c; }
   /* --- le rythme : chaque phase dure au moins le temps de la lire --- */

@@ -593,6 +593,7 @@
     if (ev.target.closest("[data-close]") || ev.target === $("#drawer")) return openDrawer(false);
     const b = ev.target.closest("[data-jump]");
     if (b) { openDrawer(false); goTo(b.dataset.jump); }
+    if (ev.target.closest(".drawer-explore a")) openDrawer(false);
   });
   document.addEventListener("keydown", (ev) => { if (ev.key === "Escape" && !$("#drawer").hidden) openDrawer(false); });
 
@@ -660,6 +661,7 @@
     st.style.setProperty("--kb", (chapterDur(c) + readTime(c)) / 1000 + "s");
     if (!reduceMotion && c.scene !== "map" && !(U.stage3d && U.stage3d.world)) st.classList.add("kb");
     sections.forEach((s, i) => s.classList.toggle("is-active", i === idx));
+    document.body.dataset.ch = c.type;
     $$("#sceneSvg .scene").forEach((g) => g.classList.toggle("on", g.dataset.scene === c.scene));
     const stage = $("#stage");
     stage.dataset.scene = c.scene;

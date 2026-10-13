@@ -89,14 +89,18 @@
 <!-- Le monde 3D : données en direct et découvertes à toucher sur le terrain -->
 <div class="world-tele world-ui" id="worldTele" aria-live="off"></div>
 <div class="world-hot world-ui" id="worldHot"></div>
+<!-- Mise en scène des simulations : titres des phases et coupes au montage -->
+<div class="cine world-ui" id="cine" aria-hidden="true"><div class="cine-title"><p class="ct-k"></p><p class="ct-t"></p></div></div>
 <!-- Simulation d'une bataille : les phases, une à une -->
 <section class="sim-panel world-ui" id="battlePanel" hidden aria-live="polite">
   <button type="button" class="bt-toggle" data-i18n-aria="phaseText" aria-label="Afficher le texte"><span class="bt-step"></span><span class="bt-title"></span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
   <p class="bt-text"></p>
+  <p class="bt-scale"></p>
   <div class="bt-row">
     <button type="button" class="bt-pause icon-btn" aria-pressed="false" data-i18n-aria="pause" aria-label="Pause"><svg viewBox="0 0 24 24" aria-hidden="true"><path class="i-pause" d="M7 5h3.5v14H7zM13.5 5H17v14h-3.5z"/><path class="i-play" d="M8 5.5v13l11-6.5z"/></svg></button>
     <div class="bt-steps" role="group" data-i18n-aria="phase" aria-label="Phase"></div>
     <button type="button" class="bt-replay icon-btn" data-i18n-aria="replay" aria-label="Revoir depuis le début"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.4-5.7M4 4v4h4"/></svg></button>
+    <button type="button" class="bt-info icon-btn" aria-pressed="false" data-i18n-aria="chapterText" aria-label="Le récit du chapitre"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.01"/></svg></button>
   </div>
 </section>
 <!-- Caméra libre : on tourne, on zoome, on se déplace dans la scène -->
@@ -259,6 +263,13 @@
       <button type="button" class="icon-btn" data-close data-i18n-aria="close" aria-label="Fermer"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
     </div>
     <ol class="drawer-list" id="drawerList"></ol>
+    <nav class="drawer-explore" aria-labelledby="drawerExplore">
+      <h3 id="drawerExplore" data-i18n="exploreTitle">Explorer</h3>
+      <a href="#map" data-i18n="nav.map">Carte</a>
+      <a href="#numbers" data-i18n="nav.numbers">Chiffres</a>
+      <a href="#family" data-i18n="nav.family">Famille</a>
+      <a href="#quiz" data-i18n="nav.quiz">Quiz</a>
+    </nav>
   </div>
 </div>
 

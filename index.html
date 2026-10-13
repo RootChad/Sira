@@ -68,6 +68,17 @@
   <div class="stage-shade"></div>
 </div>
 
+<!-- Le monde 3D : données en direct et découvertes à toucher sur le terrain -->
+<div class="world-tele world-ui" id="worldTele" aria-live="off"></div>
+<div class="world-hot world-ui" id="worldHot"></div>
+<div class="discover" id="discoverCard" hidden role="dialog" aria-modal="false" aria-labelledby="discoverTitle">
+  <button type="button" class="icon-btn dc-close" data-i18n-aria="close" aria-label="Fermer"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+  <p class="dc-kicker" data-i18n="discover">Découverte</p>
+  <h3 id="discoverTitle"></h3>
+  <p class="dc-text"></p>
+  <p class="dc-data"></p>
+</div>
+
 <main id="main">
   <div class="story" id="story">
     <section class="st-intro" id="ch-intro">
@@ -210,9 +221,10 @@
 
 <script src="js/map-data.js"></script>
 <script src="js/data.js"></script>
+<script src="js/world-data.js"></script>
 <script src="js/i18n.js"></script>
 <script src="js/app.js"></script>
 <script src="js/story.js"></script>
-<script type="module" src="js/stage3d.js"></script>
+<script type="module" src="js/world.js"></script>
 </body>
 </html>

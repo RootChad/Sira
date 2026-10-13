@@ -296,3 +296,49 @@ body.sheet-open { overflow: hidden; }
   .mapsheet-map { height: 50vh; }
   .mapsheet-actions .st-btn { flex: 1; }
 }
+
+/* ---------- Le monde 3D ---------- */
+.stage.gl-on #skyCanvas, .stage.gl-on #sceneSvg, .stage.gl-on #stageMap, .stage.gl-on .map-caption { display: none; }
+.world-ui { display: none; }
+.stage.gl-on ~ .world-ui { display: block; }
+.stage.gl-on ~ .world-tele { display: grid; }
+body.story-off .world-ui, body.sheet-open .world-ui { display: none !important; }
+.world-tele {
+  position: fixed; z-index: 30; top: calc(var(--topbar-h) + 12px + env(safe-area-inset-top, 0px)); inset-inline-end: 16px;
+  display: grid; gap: 2px; padding: 8px 12px; border-radius: 10px; pointer-events: none;
+  background: rgba(4, 6, 18, 0.45); border: 1px solid rgba(255, 255, 255, 0.1); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  color: var(--st-soft); font-size: 0.78rem; line-height: 1.35; font-variant-numeric: tabular-nums; text-align: end;
+}
+.world-tele .tod { color: var(--st-gold); font-weight: 700; letter-spacing: 0.04em; }
+.world-tele .tod::before { content: "☀ "; }
+.world-tele .tod-night::before { content: "☾ "; }
+.world-tele .tod-dawn::before, .world-tele .tod-dusk::before { content: "◐ "; }
+.world-hot { position: fixed; inset: 0; z-index: 30; pointer-events: none; }
+.hot {
+  position: absolute; left: 0; top: 0; width: 0; height: 0; padding: 0; border: 0; background: none; cursor: pointer; pointer-events: auto;
+  color: #1a1406; font: inherit;
+}
+.hot-ring { position: absolute; left: -18px; top: -18px; width: 36px; height: 36px; border-radius: 50%; border: 2px solid var(--st-gold); animation: hotPulse 2s ease-out infinite; }
+.hot-dot { position: absolute; left: -13px; top: -13px; width: 26px; height: 26px; border-radius: 50%; background: var(--st-gold); display: grid; place-items: center; font-weight: 700; font-size: 1.1rem; line-height: 1; box-shadow: 0 0 16px rgba(233, 196, 111, 0.8); }
+.hot-label { position: absolute; top: 18px; left: 0; transform: translateX(-50%); white-space: nowrap; padding: 3px 9px; border-radius: 999px; background: rgba(4, 6, 18, 0.7); color: var(--st-ink); font-size: 0.78rem; font-weight: 700; }
+.hot:hover .hot-dot, .hot:focus-visible .hot-dot { transform: scale(1.15); }
+@keyframes hotPulse { from { transform: scale(0.7); opacity: 1; } to { transform: scale(1.7); opacity: 0; } }
+.discover {
+  position: fixed; z-index: 62; top: calc(var(--topbar-h) + 70px); inset-inline-end: 16px; width: min(380px, calc(100vw - 32px));
+  padding: 16px 18px; border-radius: 14px; background: rgba(9, 13, 32, 0.92); border: 1px solid rgba(233, 196, 111, 0.4);
+  color: var(--st-ink); box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  animation: rise 0.35s ease;
+}
+.discover .dc-close { position: absolute; top: 10px; inset-inline-end: 10px; border-color: var(--st-line); width: 32px; height: 32px; }
+.dc-kicker { margin: 0; color: var(--st-gold); font-size: 0.78rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; }
+:root[lang="ar"] .dc-kicker { letter-spacing: 0; }
+.discover h3 { font-size: 1.3rem; margin: 4px 36px 8px 0; color: #fff; }
+:root[dir="rtl"] .discover h3 { margin: 4px 0 8px 36px; }
+.dc-text { margin: 0; color: var(--st-soft); line-height: 1.55; }
+.dc-data { display: flex; flex-wrap: wrap; gap: 4px 12px; margin: 12px 0 0; padding-top: 10px; border-top: 1px solid var(--st-line); color: var(--st-gold); font-size: 0.82rem; font-variant-numeric: tabular-nums; }
+@media (max-width: 799px) {
+  .world-tele { top: calc(var(--topbar-h) + 60px); font-size: 0.7rem; padding: 6px 9px; }
+  .discover { top: auto; bottom: calc(var(--hud-h) + 12px); inset-inline: 12px; width: auto; }
+}
+@media (prefers-reduced-motion: reduce) { .hot-ring { animation: none; } }
+body.story-off .discover { display: none !important; }

@@ -652,7 +652,7 @@
     st.classList.remove("kb");
     void st.offsetWidth;
     st.style.setProperty("--kb", (chapterDur(c) + readTime(c)) / 1000 + "s");
-    if (!reduceMotion && c.scene !== "map") st.classList.add("kb");
+    if (!reduceMotion && c.scene !== "map" && !(U.stage3d && U.stage3d.world)) st.classList.add("kb");
     sections.forEach((s, i) => s.classList.toggle("is-active", i === idx));
     $$("#sceneSvg .scene").forEach((g) => g.classList.toggle("on", g.dataset.scene === c.scene));
     const stage = $("#stage");
@@ -665,7 +665,7 @@
     stage.classList.toggle("gl-on", gl);
     if (U.stage3d) U.stage3d.setChapter(gl ? c : null);
     setCrowd(gl ? null : c.crowd || null);
-    fxMode = c.fx || null;
+    fxMode = gl ? null : c.fx || null;
     const hud = $("#hud");
     if (c.type === "event") {
       const e = eventById[c.ev];
@@ -1363,8 +1363,8 @@
           if (activeIndex + 1 >= CHAPTERS.length - 1) setPlaying(false);
         }
       }
-      drawSky(dt, t);
       if (gl) U.stage3d.render(dt, t, progress, { W, H, fb, mobile });
+      else drawSky(dt, t);
       drawFx(dt, t);
       updateSvg();
     }
@@ -1391,6 +1391,8 @@
   }
 
   U.formation = formation;
+  // le monde 3D a fini de charger : il reprend la scène en cours
+  U.stageReady = () => { if (activeIndex >= 0) { const i = activeIndex; activeIndex = -1; setActive(i); } };
   U.crowdColors = () => COLORS.slice();
   U.openChapter = (id) => goTo(id, true);
   U.storyInit = init;

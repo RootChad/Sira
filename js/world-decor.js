@@ -84,7 +84,9 @@ export function buildModels() {
     part(new THREE.IcosahedronGeometry(1, 1), "#4c6a30", M(0, 3.4, 0, 0, 0, 0, 2.4, 2.1, 2.4))
   ]);
   G.shrub = merge([part(new THREE.IcosahedronGeometry(1, 0), "#7b7a4b", M(0, 0.35, 0, 0, 0, 0, 1, 0.6, 1))]);
-  G.rock = merge([part(new THREE.DodecahedronGeometry(1, 0), "#7a6450", M(0, 0.35, 0, 0.3, 0.5, 0.2, 1, 0.7, 1))]);
+  // touffes d'herbe sèche
+  G.tuft = merge([0, 1, 2, 3, 4].map((k) => part(new THREE.ConeGeometry(0.12, 0.9, 3), k % 2 ? "#b9a466" : "#9c8f55", M(Math.cos(k * 1.3) * 0.18, 0.4, Math.sin(k * 1.3) * 0.18, Math.cos(k) * 0.3, 0, Math.sin(k) * 0.3))));
+  G.rock = merge([part(new THREE.DodecahedronGeometry(1, 0), "#9a8066", M(0, 0.35, 0, 0.3, 0.5, 0.2, 1, 0.7, 1))]);
   // maison de terre : un cube, une porte sombre, un toit plat plus clair
   {
     const box = new THREE.BoxGeometry(1, 1, 1).translate(0, 0.5, 0).toNonIndexed();
@@ -94,7 +96,13 @@ export function buildModels() {
     for (let i = 0; i < n; i++) { const c = box.attributes.normal.array[i * 3 + 1] > 0.5 ? top : side; col.set([c.r, c.g, c.b], i * 3); }
     box.setAttribute("color", new THREE.BufferAttribute(col, 3));
     for (const k of Object.keys(box.attributes)) if (!["position", "normal", "color"].includes(k)) box.deleteAttribute(k);
-    G.house = merge([box, part(new THREE.BoxGeometry(0.22, 0.5, 0.02), "#3b2c20", M(0.15, 0.25, 0.505))]);
+    // un parapet autour du toit-terrasse, une porte, de petites fenêtres, des poutres qui dépassent
+    G.house = merge([box,
+      part(new THREE.BoxGeometry(1.0, 0.09, 0.05), "#c7a678", M(0, 1.04, 0.475)), part(new THREE.BoxGeometry(1.0, 0.09, 0.05), "#c7a678", M(0, 1.04, -0.475)),
+      part(new THREE.BoxGeometry(0.05, 0.09, 1.0), "#c7a678", M(0.475, 1.04, 0)), part(new THREE.BoxGeometry(0.05, 0.09, 1.0), "#c7a678", M(-0.475, 1.04, 0)),
+      part(new THREE.BoxGeometry(0.2, 0.45, 0.02), "#3b2c20", M(0.18, 0.225, 0.505)),
+      part(new THREE.BoxGeometry(0.09, 0.09, 0.02), "#2a2019", M(-0.22, 0.72, 0.505)), part(new THREE.BoxGeometry(0.02, 0.09, 0.09), "#2a2019", M(0.505, 0.72, -0.2)),
+      ...[-0.3, 0, 0.3].map((z) => part(new THREE.BoxGeometry(0.06, 0.04, 0.04), "#5a4632", M(0.52, 0.9, z)))]);
   }
   // tente bédouine en poil de chèvre, tente blanche de pèlerin
   G.tent = merge([part(prism(), "#3a302a")]);
@@ -115,7 +123,17 @@ export function buildModels() {
   // pion : la forme d'une pièce de jeu, sans figure humaine
   {
     const prof = [[0, 0], [0.95, 0], [0.9, 0.22], [0.55, 0.42], [0.42, 1.25], [0.62, 1.42], [0.3, 1.58], [0, 1.6]].map(([x, y]) => new THREE.Vector2(x, y));
-    G.pawn = merge([part(new THREE.LatheGeometry(prof, 6), "#ffffff"), part(new THREE.IcosahedronGeometry(0.5, 0), "#ffffff", M(0, 1.98, 0))]);
+    const lathe = new THREE.LatheGeometry(prof, 6), head = new THREE.IcosahedronGeometry(0.5, 0);
+    G.pawn = merge([part(lathe, "#ffffff"), part(head, "#ffffff", M(0, 1.98, 0))]);
+    // le fantassin : une lance et un bouclier rond ; l'archer : un arc et un carquois
+    G.soldier = merge([part(lathe, "#ffffff"), part(head, "#ffffff", M(0, 1.98, 0)),
+      part(new THREE.CylinderGeometry(0.035, 0.045, 3.6, 4), "#7a5a3a", M(0.62, 1.75, 0.1, 0.12, 0, 0)),
+      part(new THREE.ConeGeometry(0.09, 0.32, 4), "#c9ced3", M(0.62, 3.68, 0.32, 0.12, 0, 0)),
+      part(new THREE.CylinderGeometry(0.5, 0.5, 0.08, 10), "#8a6038", M(-0.58, 1.05, 0.12, 0, 0, Math.PI / 2)),
+      part(new THREE.CylinderGeometry(0.12, 0.12, 0.1, 6), "#d8c08a", M(-0.64, 1.05, 0.12, 0, 0, Math.PI / 2))]);
+    G.archer = merge([part(lathe, "#ffffff"), part(head, "#ffffff", M(0, 1.98, 0)),
+      part(new THREE.TorusGeometry(0.75, 0.04, 4, 10, Math.PI * 0.9), "#6a4a2c", M(0.6, 1.4, 0.15, 0, Math.PI / 2, Math.PI / 2 + 0.15)),
+      part(new THREE.CylinderGeometry(0.11, 0.09, 0.8, 5), "#5d3e25", M(-0.2, 1.45, -0.45, -0.35, 0, 0))]);
   }
   // cheval (le cavalier est un pion posé dessus)
   G.horse = merge([
@@ -123,7 +141,10 @@ export function buildModels() {
     part(new THREE.BoxGeometry(0.34, 0.95, 0.42), "#6a4429", M(0, 1.85, 0.88, 0.55, 0, 0)),
     part(new THREE.BoxGeometry(0.28, 0.3, 0.62), "#5b3a23", M(0, 2.28, 1.2, 0.25, 0, 0)),
     ...[[-0.22, 0.7], [0.22, 0.7], [-0.22, -0.7], [0.22, -0.7]].map(([x, z]) => part(new THREE.BoxGeometry(0.15, 1.05, 0.15), "#3d281a", M(x, 0.52, z))),
-    part(new THREE.BoxGeometry(0.1, 0.75, 0.12), "#2c1d14", M(0, 1.3, -0.98, -0.4, 0, 0))
+    part(new THREE.BoxGeometry(0.1, 0.75, 0.12), "#2c1d14", M(0, 1.3, -0.98, -0.4, 0, 0)),
+    part(new THREE.BoxGeometry(0.8, 0.12, 0.7), "#7b2a22", M(0, 1.74, -0.1)), // la selle
+    part(new THREE.CylinderGeometry(0.03, 0.04, 4.2, 4), "#6b4c30", M(0.42, 2.5, 0.35, 1.05, 0, 0)), // la lance du cavalier
+    part(new THREE.ConeGeometry(0.07, 0.28, 4), "#c9ced3", M(0.42, 3.62, 2.28, 1.05, 0, 0))
   ]);
   // chameau
   G.camel = merge([
@@ -131,7 +152,11 @@ export function buildModels() {
     part(new THREE.IcosahedronGeometry(0.55, 1), "#a8814f", M(0, 2.45, -0.1, 0, 0, 0, 1, 0.75, 1.3)),
     part(new THREE.BoxGeometry(0.28, 1.1, 0.3), "#b08a5a", M(0, 2.3, 1.15, -0.5, 0, 0)),
     part(new THREE.BoxGeometry(0.28, 0.3, 0.62), "#9c7748", M(0, 2.8, 1.5, 0.15, 0, 0)),
-    ...[[-0.26, 0.72], [0.26, 0.72], [-0.26, -0.72], [0.26, -0.72]].map(([x, z]) => part(new THREE.BoxGeometry(0.16, 1.6, 0.16), "#8d6b42", M(x, 0.8, z)))
+    ...[[-0.26, 0.72], [0.26, 0.72], [-0.26, -0.72], [0.26, -0.72]].map(([x, z]) => part(new THREE.BoxGeometry(0.16, 1.6, 0.16), "#8d6b42", M(x, 0.8, z))),
+    // la couverture tissée et les bagages
+    part(new THREE.BoxGeometry(0.95, 0.5, 0.9), "#8e2b22", M(0, 2.12, -0.05)),
+    part(new THREE.BoxGeometry(0.97, 0.12, 0.92), "#d7b45a", M(0, 2.0, -0.05)),
+    part(new THREE.BoxGeometry(0.5, 0.45, 0.55), "#5f4a35", M(0.62, 1.95, -0.3)), part(new THREE.BoxGeometry(0.5, 0.45, 0.55), "#4f5a6b", M(-0.62, 1.95, -0.3))
   ]);
   G.sheep = merge([
     part(new THREE.IcosahedronGeometry(0.45, 0), "#ebe4d4", M(0, 0.55, 0, 0, 0, 0, 0.85, 0.75, 1.15)),
@@ -280,6 +305,8 @@ export function createDecor(env) {
     });
     if (m.instanceColor) m.instanceColor.needsUpdate = true;
     m.computeBoundingSphere();
+    m.castShadow = true;
+    m.receiveShadow = geo === G.house || geo === G.fort;
     return m;
   }
   const tint = (r, base, amp) => new THREE.Color(base).offsetHSL((r() - 0.5) * amp, (r() - 0.5) * amp, (r() - 0.5) * amp * 1.4);
@@ -301,16 +328,22 @@ vec3 sPerturb(vec3 surf_pos, vec3 surf_norm, vec2 dHdxy, float fd) {
   float det = dot(sx, r1) * fd;
   return normalize(abs(det) * surf_norm - sign(det) * (dHdxy.x * r1 + dHdxy.y * r2));
 }`)
-        .replace("#include <color_fragment>", `#include <color_fragment>
+        .replace("#include <normal_fragment_maps>", `#include <normal_fragment_maps>
+// des variations douces à plusieurs échelles, et des rides de sable de près, seulement sur le plat
 float camD = length(vViewPosition);
 vec2 wp = vWPos.xz;
-float n0 = dn(wp * 0.21 + 0.13), n1 = dn(wp * 1.7 + 0.37), n2 = dn(wp * 13.0 + 0.71), n3 = dn(wp * 95.0);
-float f1 = 1.0 - smoothstep(25.0, 160.0, camD), f2 = 1.0 - smoothstep(2.5, 22.0, camD), f3 = 1.0 - smoothstep(0.35, 3.5, camD);
-diffuseColor.rgb *= 1.0 + (n0 - 0.5) * 0.22 + (n1 - 0.5) * 0.3 * f1 + (n2 - 0.5) * 0.34 * f2 + (n3 - 0.5) * 0.3 * f3;`)
-        .replace("#include <normal_fragment_maps>", `#include <normal_fragment_maps>
-float b1 = 1.0 - smoothstep(6.0, 40.0, camD), b2 = 1.0 - smoothstep(1.0, 6.0, camD);
-float hb = (n2 - 0.5) * b2 * 0.9 + (n3 - 0.5) * f3 * 0.7 + (n1 - 0.5) * b1 * 0.6;
-normal = sPerturb(-vViewPosition, normal, vec2(dFdx(hb), dFdy(hb)) * 1.6, faceDirection);`);
+float n0 = dn(wp * 0.21 + 0.13), n1 = dn(wp * 1.7 + 0.37), n2 = dn(wp * 13.0 + 0.71), n3 = dn(wp * 61.0 + 0.29);
+float f1 = 1.0 - smoothstep(25.0, 160.0, camD), f2 = 1.0 - smoothstep(2.0, 14.0, camD), f3 = 1.0 - smoothstep(0.3, 2.2, camD);
+vec3 upV = normalize((viewMatrix * vec4(0.0, 1.0, 0.0, 0.0)).xyz);
+float flatK = smoothstep(0.9, 0.985, dot(normalize(vNormal), upV));
+float ph = dot(wp, vec2(0.83, 0.56)) * 260.0 + n2 * 9.0 + n1 * 4.0;
+float rip = sin(ph);
+// les rides ne s'affichent que là où l'écran peut les résoudre (sinon elles crénellent)
+float ripK = f3 * flatK * (1.0 - smoothstep(0.35, 1.2, fwidth(ph)));
+diffuseColor.rgb *= 1.0 + (n0 - 0.5) * 0.16 + (n1 - 0.5) * 0.14 * f1 + (n2 - 0.5) * 0.1 * f2 + rip * 0.02 * ripK;
+float b1 = 1.0 - smoothstep(4.0, 30.0, camD);
+float hb = (n1 - 0.5) * b1 * 0.5 + (n2 - 0.5) * f2 * 0.4 + (n3 - 0.5) * f3 * 0.2 + rip * 0.08 * ripK;
+normal = sPerturb(-vViewPosition, normal, vec2(dFdx(hb), dFdy(hb)) * 1.4, faceDirection);`);
     };
     mat.needsUpdate = true;
   }
@@ -479,10 +512,11 @@ normal = sPerturb(-vViewPosition, normal, vec2(dFdx(hb), dFdy(hb)) * 2.0, faceDi
     const r = rng(seedOf(id));
     const [lon0, lat0] = view.at;
     const R = Math.min(14, Math.max(2.2, view.dist * 1.7)); // km
-    const nA = Math.round((isMobile ? 220 : 650) * Math.min(1, 6 / R + 0.4)), nS = isMobile ? 500 : 1600, nR = isMobile ? 400 : 1300;
-    const acacias = [], shrubs = [], rocks = [];
+    const nA = Math.round((isMobile ? 260 : 800) * Math.min(1, 6 / R + 0.4)), nS = isMobile ? 900 : 2800, nR = isMobile ? 450 : 1400, nT = isMobile ? 1000 : 3500;
+    const acacias = [], shrubs = [], rocks = [], tufts = [];
     const kx = 111.32 * Math.cos(lat0 * D2R), kz = 110.57;
-    const pick = () => { const a = r() * Math.PI * 2, d = R * Math.sqrt(r()); return [lon0 + (Math.cos(a) * d) / kx, lat0 + (Math.sin(a) * d) / kz]; };
+    // plus dense près du sujet, là où la caméra regarde de près
+    const pick = () => { const a = r() * Math.PI * 2, d = R * Math.pow(r(), 0.85); return [lon0 + (Math.cos(a) * d) / kx, lat0 + (Math.sin(a) * d) / kz]; };
     for (let k = 0; k < nA * 6 && acacias.length < nA; k++) {
       const [lon, lat] = pick(), h = hAt(lon, lat);
       if (h <= 3 || inHouses(lon, lat)) continue;
@@ -504,6 +538,13 @@ normal = sPerturb(-vViewPosition, normal, vec2(dFdx(hb), dFdy(hb)) * 2.0, faceDi
       const big = r() < 0.06 ? 2.2 : 1;
       rocks.push({ x: X(lon), y: Y(h), z: Z(lat), s: KM * E * (0.8 + r() * 1.6) * big, ry: r() * 6.28, rx: r(), c: tint(r, "#ffffff", 0.25) });
     }
+    for (let k = 0; k < nT * 3 && tufts.length < nT; k++) {
+      const a = r() * Math.PI * 2, d = R * 0.5 * Math.pow(r(), 0.7);
+      const lon = lon0 + (Math.cos(a) * d) / kx, lat = lat0 + (Math.sin(a) * d) / kz, h = hAt(lon, lat);
+      if (h <= 3 || slopeAt(lon, lat) > 0.25 || inHouses(lon, lat)) continue;
+      tufts.push({ x: X(lon), y: Y(h), z: Z(lat), s: KM * E * (0.9 + r() * 1.3), ry: r() * 6.28, c: tint(r, "#ffffff", 0.25) });
+    }
+    if (tufts.length) { const m = instanced(G.tuft, matV, tufts); m.castShadow = false; group.add(m); }
     if (acacias.length) group.add(instanced(G.acacia, matV, acacias));
     if (shrubs.length) group.add(instanced(G.shrub, matV, shrubs));
     if (rocks.length) group.add(instanced(G.rock, matV, rocks));
@@ -572,7 +613,7 @@ normal = sPerturb(-vViewPosition, normal, vec2(dFdx(hb), dFdy(hb)) * 2.0, faceDi
   }
 
   /* --- fumée des foyers au crépuscule --- */
-  const smoke = new Particles(isMobile ? 160 : 400, { color: "#c9c1b4", tex: soft });
+  const smoke = new Particles(isMobile ? 160 : 400, { color: "#8e877d", tex: soft });
   scene.add(smoke.points);
   let smokeAt = null;
   function setSmoke(view) {
@@ -595,7 +636,7 @@ normal = sPerturb(-vViewPosition, normal, vec2(dFdx(hb), dFdy(hb)) * 2.0, faceDi
     if (smokeAt && ((hour > 16.5 && hour < 21) || (hour > 5.5 && hour < 8)) && Math.random() < dt * 14) {
       const a = Math.random() * 6.28, d = smokeAt.R * Math.sqrt(Math.random());
       const lon = smokeAt.lon + Math.cos(a) * d / 103, lat = smokeAt.lat + Math.sin(a) * d / 110.6;
-      smoke.emit(X(lon), yOf(lon, lat) + 0.012, Z(lat), 0.004, 0.012, 0.002, 9, 0.012, 3, 0.35);
+      smoke.emit(X(lon), yOf(lon, lat) + 0.008, Z(lat), 0.003, 0.009, 0.0015, 10, 0.008, 3, 0.16);
     }
     smoke.mat.uniforms.uScale.value = viewH;
     smoke.update(dt, 0.15, 0);

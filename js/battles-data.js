@@ -111,7 +111,7 @@ export const BATTLES = {
         [0.68, 520, 220, 300, "melee"], [0.8, 420, 300, 300, "melee"], [1, 450, -900, 190, "column", { w: 4 }]] },
       { id: "QM", side: 1, type: "camel", n: 200, exact: true, sp: 8, keys: [[0, 380, -1680, 10, "camp", { spread: 1.5 }], [1, 380, -1680, 10, "camp", { spread: 1.5 }]] }
     ],
-    props: [{ type: "mound", at: [-100, 55], r: 75, h: 16 }, { type: "tents", at: [120, -1520], n: 60, r: 220 }],
+    props: [{ type: "mound", at: [-100, 55], r: 80, h: 24 }, { type: "tents", at: [120, -1520], n: 60, r: 220 }],
     banners: [{ unit: "MU", at: [0, -4], color: "#f4f1e8" }, { unit: "QU", at: [0, -4], color: "#8c2318", down: [[0.25, 0.56]] }],
     events: [
       { type: "arrows", from: "AR1", to: "IK", p0: 0.08, p1: 0.22, n: 90 }, { type: "arrows", from: "AR1", to: "KH", p0: 0.1, p1: 0.3, n: 90 },

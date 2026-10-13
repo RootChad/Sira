@@ -33,11 +33,12 @@ export function createBattles(env, decor) {
     m.frustumCulled = false;
     for (let i = 0; i < max; i++) m.setColorAt(i, white);
     m.count = 0;
+    m.castShadow = true;
     root.add(m);
     return m;
   };
   const MAXP = isMobile ? 4500 : 8500;
-  const pawns = pool(G.pawn, pawnMat, MAXP), horses = pool(G.horse, matV, 900), riders = pool(G.pawn, pawnMat, 900);
+  const pawns = pool(G.pawn, pawnMat, isMobile ? 2600 : 5200), soldiers = pool(G.soldier, pawnMat, MAXP), archers = pool(G.archer, pawnMat, 1600), horses = pool(G.horse, matV, 900), riders = pool(G.pawn, pawnMat, 900);
   const camels = pool(G.camel, matV, 1200), sheep = pool(G.sheep, matV, 1400), tents = pool(G.tent, matV, 700), arrows = pool(G.arrow, matV, 900);
   const wtents = pool(G.whiteTent, tentMat, 600);
   const idols = pool(G.idol, matV, 360), poles = pool(G.pole, matV, 24), trench = pool(G.trench, matV, 800), earth = pool(G.earth, matV, 800);
@@ -54,8 +55,9 @@ export function createBattles(env, decor) {
   const rain = new Particles(isMobile ? 500 : 1100, { color: "#b9c7d8", tex: decor.soft, minPx: 1.2 });
   const wind = new Particles(isMobile ? 400 : 900, { color: "#d3c09e", tex: decor.soft });
   const fires = new Particles(3200, { color: "#ffad55", tex: decor.soft, additive: true, minPx: 3 });
-  for (const ps of [dust, sand, rain, wind, fires]) root.add(ps.points);
-  const moundMat = new THREE.MeshStandardMaterial({ color: 0xa88866, roughness: 1 });
+  const smoke = new Particles(isMobile ? 260 : 600, { color: "#8f877c", tex: decor.soft });
+  for (const ps of [dust, sand, rain, wind, fires, smoke]) root.add(ps.points);
+  const moundMat = new THREE.MeshStandardMaterial({ color: 0xcdb08a, roughness: 1 });
   const staticG = new THREE.Group();
   root.add(staticG);
 
@@ -150,18 +152,19 @@ export function createBattles(env, decor) {
     const count = (s) => B.units.reduce((a, u) => a + (u.exact || u.type === "camel" || u.type === "sheep" ? 0 : Math.round(u.n / s)), 0);
     scaleEff = B.scale;
     while (count(scaleEff) > (isMobile ? 2600 : 7200)) scaleEff *= 2;
-    const slots = { inf: 0, arch: 0, cav: 0, camel: 0, sheep: 0 };
+    const slots = { inf: 0, arch: 0, pil: 0, cav: 0, camel: 0, sheep: 0 };
     units = B.units.map((d, ui) => {
       const N = d.exact ? d.n : Math.max(1, Math.round(d.n / scaleEff));
       const h = new Float32Array(N * 4);
       for (let i = 0; i < h.length; i++) h[i] = H(i + ui * 7919, 3 + (i % 4));
-      const kind = d.type === "arch" ? "inf" : d.type;
+      // fantassins armés, archers, pèlerins (sans armes), cavaliers, chameaux, moutons
+      const kind = d.type === "inf" && d.side === 3 ? "pil" : d.type;
       const u = { ...d, N, h, cur: new Float32Array(N * 2), base: slots[kind], kind, lag: 0.018, center: [0, 0], vis: 0 };
       slots[kind] += N;
       u.losses = (d.loss || []).map(([p0, p1, c]) => [p0, p1, d.exact ? c : Math.max(1, Math.round(c / scaleEff))]);
       // couleur de chaque pion
       const col = new THREE.Color(d.type === "arch" ? ARCHER : SIDE[d.side] || SIDE[0]);
-      const tgt = kind === "cav" ? riders : kind === "inf" ? pawns : null;
+      const tgt = kind === "cav" ? riders : kind === "inf" ? soldiers : kind === "arch" ? archers : kind === "pil" ? pawns : null;
       if (tgt) for (let i = 0; i < N; i++) {
         if (u.base + i >= tgt.instanceMatrix.count) break;
         const c = col.clone().offsetHSL(0, 0, (u.h[i * 4 + 2] - 0.5) * 0.08);
@@ -170,16 +173,16 @@ export function createBattles(env, decor) {
       if (kind === "cav") for (let i = 0; i < N; i++) horses.setColorAt(u.base + i, new THREE.Color().setHSL(0.07, 0.3, 0.55 + (u.h[i * 4 + 3] - 0.5) * 0.5));
       return u;
     });
-    pawns.count = Math.min(MAXP, slots.inf); riders.count = horses.count = Math.min(900, slots.cav);
+    soldiers.count = Math.min(MAXP, slots.inf); archers.count = Math.min(1600, slots.arch); pawns.count = Math.min(pawns.instanceMatrix.count, slots.pil); riders.count = horses.count = Math.min(900, slots.cav);
     camels.count = Math.min(1200, slots.camel); sheep.count = Math.min(1400, slots.sheep);
-    for (const m of [pawns, riders, horses, camels, sheep]) if (m.instanceColor) m.instanceColor.needsUpdate = true;
+    for (const m of [pawns, soldiers, archers, riders, horses, camels, sheep]) if (m.instanceColor) m.instanceColor.needsUpdate = true;
     buildProps();
     return true;
   }
   function stop() {
     B = null; units = [];
-    for (const m of [pawns, horses, riders, camels, sheep, tents, wtents, arrows, idols, poles, flags, trench, earth]) m.count = 0;
-    for (const ps of [dust, sand, rain, wind, fires]) ps.clear();
+    for (const m of [pawns, soldiers, archers, horses, riders, camels, sheep, tents, wtents, arrows, idols, poles, flags, trench, earth]) m.count = 0;
+    for (const ps of [dust, sand, rain, wind, fires, smoke]) ps.clear();
     while (staticG.children.length) staticG.remove(staticG.children[0]);
     tentList = []; wtentList = []; fireList = []; trenchSegs = []; idolList = []; bannerList = [];
   }
@@ -258,13 +261,15 @@ export function createBattles(env, decor) {
   const zero = new THREE.Matrix4().makeScale(0, 0, 0);
   const a2 = [0, 0], b2 = [0, 0], SU = { A: null, B: null, f: 0 };
   let phase = -1;
+  const stats = { melee: 0, gallop: 0, arrows: 0, fires: 0, storm: 0, march: 0 };
   function update(dt, t, p, pxScale) {
     if (!B) return -1;
     flagTime.value = t;
     const emitK = Math.min(1, dt * 60);
+    let meleeN = 0, gallopN = 0, marchN = 0, allN = 0;
     for (const u of units) {
-      const tgt = u.kind === "inf" ? pawns : u.kind === "cav" ? horses : u.kind === "camel" ? camels : sheep;
-      const max = tgt === pawns ? MAXP : tgt.instanceMatrix.count;
+      const tgt = u.kind === "inf" ? soldiers : u.kind === "arch" ? archers : u.kind === "pil" ? pawns : u.kind === "cav" ? horses : u.kind === "camel" ? camels : sheep;
+      const max = tgt.instanceMatrix.count;
       let uvis = 1;
       if (u.show) uvis = sstep(u.show[0], u.show[0] + 0.015, p) * (1 - sstep(u.show[1] - 0.015, u.show[1], p));
       u.vis = uvis;
@@ -276,6 +281,13 @@ export function createBattles(env, decor) {
       const speed = segDur > 0 && f0 > 0 && f0 < 1 ? Math.hypot(B0[1] - A0[1], B0[2] - A0[2]) / segDur : 0;
       const melee = (A0[4] === "melee" ? 1 - f0 : 0) + (B0[4] === "melee" ? f0 : 0);
       const camp = A0[4] === "camp" && B0[4] === "camp";
+      if (u.kind === "inf" || u.kind === "arch" || u.kind === "cav") {
+        const w = u.N * uvis;
+        allN += w;
+        meleeN += w * Math.min(1, melee);
+        if (u.kind === "cav" && speed > 3) gallopN += w;
+        if (speed > 1.2 && melee < 0.2) marchN += w;
+      }
       for (let i = 0; i < u.N; i++) {
         const slot = u.base + i;
         if (slot >= max) break;
@@ -303,7 +315,7 @@ export function createBattles(env, decor) {
         const yaw = camp || u.kind === "sheep" ? u.h[i * 4 + 1] * 6.28 : Math.PI - (u.face + (melee > 0.5 ? (u.h[i * 4 + 3] - 0.5) * 60 : 0)) * D2R;
         q.setFromAxisAngle(yAx, yaw);
         v.set(wv[0], gy + bob, wv[1]);
-        const sc = vis * EB * KM * (u.kind === "inf" ? 0.78 : 0.95);
+        const sc = vis * EB * KM * (u.kind === "inf" || u.kind === "arch" || u.kind === "pil" ? 0.78 : 0.95);
         s.set(sc, sc, sc);
         m4.compose(v, q, s);
         tgt.setMatrixAt(slot, m4);
@@ -325,10 +337,14 @@ export function createBattles(env, decor) {
         }
       }
     }
-    for (const m of [pawns, horses, riders, camels, sheep]) m.instanceMatrix.needsUpdate = true;
+    for (const m of [pawns, soldiers, archers, horses, riders, camels, sheep]) m.instanceMatrix.needsUpdate = true;
+    stats.melee = allN ? Math.min(1, (meleeN / allN) * 2) : 0;
+    stats.gallop = Math.min(1, gallopN / 40);
+    stats.march = allN ? Math.min(1, (marchN / allN) * 1.5) : 0;
     updateProps(dt, t, p);
     updateEvents(dt, t, p);
-    for (const ps of [dust, sand, rain, wind]) ps.mat.uniforms.uScale.value = pxScale;
+    for (const ps of [dust, sand, rain, wind, smoke]) ps.mat.uniforms.uScale.value = pxScale;
+    smoke.update(dt, 0.08, -0.0002);
     fires.mat.uniforms.uScale.value = pxScale;
     dust.update(dt, 0.5, 0); sand.update(dt, 0.25, 0.01); rain.update(dt, 0, 0); wind.update(dt, 0.05, 0);
     let ph = 0;
@@ -359,6 +375,15 @@ export function createBattles(env, decor) {
       tents.setMatrixAt(i, m4);
     });
     tents.instanceMatrix.needsUpdate = true;
+    // la fumée des foyers monte entre les tentes, et se couche dans la tempête
+    if (tentList.length && stormK < 0.5) {
+      for (let k = 0; k < 8 * dt && Math.random() < 8 * dt; k++) {
+        const tn = tentList[Math.floor(Math.random() * tentList.length)];
+        const vis = tn.show ? sstep(tn.show[0], tn.show[0] + 0.03, p) : 1;
+        if (vis < 0.5 || (tn.blow && p > tn.blow[0])) continue;
+        smoke.emit(tn.x + 0.006, tn.y + 0.003, tn.z, 0.0015, 0.007, 0.0008, 12, 0.007, 4, 0.18);
+      }
+    }
     wtentList.forEach((tn, i) => {
       if (i >= 600) return;
       const vis = tn.show ? sstep(tn.show[0], tn.show[0] + 0.05, p) : 1;
@@ -369,14 +394,16 @@ export function createBattles(env, decor) {
     });
     wtents.instanceMatrix.needsUpdate = true;
     // feux : vacillent la nuit, s'éteignent dans la tempête
-    let nf = 0;
+    let nf = 0, lit = 0;
     for (let i = 0; i < fireList.length && i < fires.max; i++) {
       const f = fireList[i];
       const vis = f.show ? sstep(f.show[0], f.show[0] + 0.02, p) * (1 - sstep(f.show[1] - 0.02, f.show[1], p)) : 1;
       fires.size[i] = 0.016 * f.s * (1 + 0.15 * Math.sin(t * 11 + f.h * 30));
       fires.alpha[i] = vis * (1 - stormK) * (0.75 + 0.25 * Math.sin(t * 7 + f.h * 50));
+      if (fires.alpha[i] > 0.2) lit++;
       nf = i + 1;
     }
+    stats.fires = Math.min(1, lit / 60);
     fires.flush(nf);
     // le fossé se creuse d'ouest en est, la terre s'entasse du côté de Médine
     trenchSegs.forEach((sg, i) => {
@@ -477,6 +504,8 @@ export function createBattles(env, decor) {
       }
     }
     arrows.count = na;
+    stats.arrows = Math.min(1, na / 120);
+    stats.storm = stormK;
     arrows.instanceMatrix.needsUpdate = true;
   }
 
@@ -507,7 +536,7 @@ export function createBattles(env, decor) {
 
   return {
     has: (id) => !!BATTLES[id], def: (id) => BATTLES[id], start, stop, update, labels,
-    get scale() { return scaleEff; }, get phase() { return phase; }, get active() { return !!B; },
+    get scale() { return scaleEff; }, stats, get phase() { return phase; }, get active() { return !!B; },
     camFor: (ph) => { const c = B.phases[ph].cam; return { x: Ox + c[0] * KM, z: Oz - c[1] * KM, dist: c[2], pitch: c[3], head: c[4] }; }
   };
 }

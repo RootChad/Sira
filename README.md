@@ -17,11 +17,14 @@ La page s'ouvre sur un **voyage immersif**, pensé comme un film : **un chapitre
 - **Décors** : la vieille ville de La Mecque serrée autour de la Ka'ba, la mosquée du Prophète de l'an 1 (murs de terre, auvent de palmes), les palmeraies de Médine, Quba', Khaybar et ses forts, les vergers de Ta'if, des acacias dans les vallées, des rochers, des oiseaux, la fumée des foyers, les nuages, la mer animée.
 - **Découvertes** : des points lumineux sur la scène s'ouvrent en fiches (23 au total) : pourquoi le fossé fut creusé au nord, le puits de Badr, la colline des archers, la direction de la qibla… avec l'altitude réelle et la distance à la Ka'ba ou à la mosquée du Prophète.
 - **Les lieux en vrai** : des photographies réelles de chaque lieu (Wikimedia Commons, licences libres), dans une vignette sur la scène, dans les fiches découverte et dans une visionneuse. Auteur et licence sont affichés sous chaque photo. Aucune ne représente de personne.
+- **Une carte en relief** : les cartes 2D (exploration, carte d'un chapitre, voyage sans 3D) reposent sur un relief ombré calculé à partir des mêmes altitudes, aux couleurs du désert, avec les récifs de la mer Rouge.
 - **Télémétrie** : heure du jour, coordonnées, altitude du sol et kilomètres parcourus s'affichent en direct.
 - Sans WebGL (ou en ouvrant le fichier sans serveur), le site reprend automatiquement la version 2D illustrée.
 - **Carte sans quitter le récit** : « Voir sur la carte » ouvre une carte par-dessus le chapitre, cadrée sur l'itinéraire ou le lieu ; on la ferme et on retrouve sa place.
 - **Barre de vie** en bas de l'écran : année grégorienne, année de l'Hégire, âge, et position sur les 63 années. On peut cliquer pour sauter à un événement. Un menu liste tous les chapitres.
-- **Ambiance sonore** facultative (vent, mer, carillon), synthétisée dans le navigateur, sans fichier audio.
+- **Une voix qui raconte** (facultative) : le récit et chaque phase des simulations sont lus en français, en anglais ou en arabe, avec les voix installées sur l'appareil. La scène attend la fin de la phrase avant de passer à la phase suivante.
+- **Son** facultatif, synthétisé dans le navigateur, sans fichier audio. L'ambiance suit la scène : vent, mer, grillons la nuit, oiseaux des oasis, feux de camp, clochettes des caravanes, rumeur et chocs des batailles, galop, flèches. La musique est une improvisation lente de flûte ney sur un bourdon, dans un maqâm choisi selon l'humeur du chapitre (hijaz, bayati, saba, rast). Voix, ambiance et musique se règlent séparément dans le menu du son.
+- **Caméra libre** : « Explorer la scène » permet de tourner autour de la scène, de zoomer et de se déplacer, au doigt ou à la souris, pendant que la simulation continue ; on peut aussi la mettre en pause.
 
 Le mouvement est réduit pour les personnes qui l'ont demandé dans leur système (`prefers-reduced-motion`).
 
@@ -72,6 +75,9 @@ js/world-decor.js   modèles et décors : palmiers, maisons, Ka'ba, mosquées, f
 js/world-battles.js le moteur des batailles : formations, pertes, flèches, poussière, feux, tempête
 js/battles-data.js  le déroulé de chaque bataille : unités, positions, phases et textes (fr / en / ar)
 js/photos.js        photographies des lieux (Wikimedia Commons) et visionneuse
+js/voice.js         la voix qui raconte (synthèse vocale du navigateur)
+js/sound.js         ambiances et musique synthétisées (Web Audio)
+data/map-relief.jpg fond de carte en relief ombré (généré par tools/generate-relief.py)
 js/world-data.js    réglages de chaque plan (lieu, heure, cadrage) et fiches « découverte » (fr / en / ar)
 js/vendor/          Three.js 0.169 et son ciel (Sky.js), licence MIT, fournis avec le site
 js/map-data.js      contour des terres, lieux et itinéraires projetés (généré)
@@ -114,6 +120,8 @@ cd tools
 npm install
 npm run terrain   # télécharge les tuiles (curl) et écrit data/terrain/*.png et index.json
 ```
+
+Le fond de carte en relief se régénère avec `python3 tools/generate-relief.py` (numpy et Pillow) : il reprend les altitudes de `data/terrain/` et la projection de `js/map-data.js`.
 
 Pour modifier une bataille (positions, effectifs, phases, textes), éditer `js/battles-data.js` : les positions sont en mètres depuis le point d'origine (est, nord), et chaque unité suit une liste de clés `[progression, est, nord, cap, formation]`.
 

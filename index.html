@@ -42,7 +42,7 @@
       <button type="button" class="icon-btn" id="chaptersBtn" aria-expanded="false" aria-controls="drawer" data-i18n-aria="chapters" aria-label="Chapitres">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
       </button>
-      <button type="button" class="icon-btn" id="soundBtn" data-sound aria-pressed="false" data-i18n-aria="soundOn" aria-label="Activer l'ambiance sonore">
+      <button type="button" class="icon-btn" id="soundBtn" aria-pressed="false" aria-expanded="false" aria-controls="audioMenu" data-i18n-aria="audioTitle" aria-label="Son et voix">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9z"/><path class="snd-wave" d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/><path class="snd-off" d="M17 9l5 6M22 9l-5 6"/></svg>
       </button>
       <div class="lang" role="group" data-i18n-aria="langLabel" aria-label="Langue">
@@ -56,6 +56,24 @@
     </div>
   </div>
 </header>
+
+<!-- Son et voix -->
+<div class="audio-menu" id="audioMenu" hidden role="dialog" aria-labelledby="audioTitle">
+  <p class="am-title" id="audioTitle" data-i18n="audioTitle">Son et voix</p>
+  <button type="button" class="am-row" role="switch" aria-checked="false" data-audio="voice">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 18c2-3 5-4 8-4s6 1 8 4"/><circle cx="12" cy="8" r="3.5"/><path d="M18.5 5.5a5 5 0 0 1 0 6M21 3.5a8 8 0 0 1 0 10"/></svg>
+    <span><b data-i18n="voiceLabel">Voix qui raconte</b><small data-i18n="voiceHint"></small></span><i class="am-sw"></i>
+  </button>
+  <button type="button" class="am-row" role="switch" aria-checked="false" data-audio="ambient">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9h11a3 3 0 1 0-3-3M3 13h15a3 3 0 1 1-3 3M3 17h7"/></svg>
+    <span><b data-i18n="ambientLabel">Ambiance</b><small data-i18n="ambientHint"></small></span><i class="am-sw"></i>
+  </button>
+  <button type="button" class="am-row" role="switch" aria-checked="false" data-audio="music">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18V5l11-2v13"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="17.5" cy="16" r="2.5"/></svg>
+    <span><b data-i18n="musicLabel">Musique</b><small data-i18n="musicHint"></small></span><i class="am-sw"></i>
+  </button>
+  <p class="am-note" id="voiceNote" hidden></p>
+</div>
 
 <!-- Scène du voyage : ciel, paysages, foules (décor, sans contenu à lire) -->
 <div class="stage" id="stage" aria-hidden="true">
@@ -73,14 +91,18 @@
 <div class="world-hot world-ui" id="worldHot"></div>
 <!-- Simulation d'une bataille : les phases, une à une -->
 <section class="sim-panel world-ui" id="battlePanel" hidden aria-live="polite">
-  <p class="bt-step"></p>
-  <h3 class="bt-title"></h3>
+  <button type="button" class="bt-toggle" data-i18n-aria="phaseText" aria-label="Afficher le texte"><span class="bt-step"></span><span class="bt-title"></span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
   <p class="bt-text"></p>
   <div class="bt-row">
+    <button type="button" class="bt-pause icon-btn" aria-pressed="false" data-i18n-aria="pause" aria-label="Pause"><svg viewBox="0 0 24 24" aria-hidden="true"><path class="i-pause" d="M7 5h3.5v14H7zM13.5 5H17v14h-3.5z"/><path class="i-play" d="M8 5.5v13l11-6.5z"/></svg></button>
     <div class="bt-steps" role="group" data-i18n-aria="phase" aria-label="Phase"></div>
     <button type="button" class="bt-replay icon-btn" data-i18n-aria="replay" aria-label="Revoir depuis le début"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.4-5.7M4 4v4h4"/></svg></button>
   </div>
 </section>
+<!-- Caméra libre : on tourne, on zoome, on se déplace dans la scène -->
+<div class="cam-layer world-ui" id="camLayer" aria-hidden="true"></div>
+<button type="button" class="cam-btn world-ui" id="camBtn" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v18M3 12h18M12 3l-3 3M12 3l3 3M12 21l-3-3M12 21l3-3M3 12l3-3M3 12l3 3M21 12l-3-3M21 12l-3 3"/></svg><span data-i18n="camFree">Explorer la scène</span></button>
+<p class="cam-hint" id="camHint" hidden data-i18n="camHint"></p>
 <!-- Le lieu en vrai : une photographie du lieu du chapitre -->
 <button type="button" class="place-photo" id="placePhoto" hidden aria-haspopup="dialog">
   <img alt=""><span class="pp-label" data-i18n="placeToday">Le lieu en vrai</span><span class="pp-n"></span>
@@ -256,6 +278,8 @@
 <script src="js/i18n.js"></script>
 <script src="js/app.js"></script>
 <script src="js/photos.js"></script>
+<script src="js/voice.js"></script>
+<script src="js/sound.js"></script>
 <script src="js/story.js"></script>
 <script type="module" src="js/world.js"></script>
 </body>

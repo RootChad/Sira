@@ -548,7 +548,11 @@
     stage.classList.toggle("map-on", c.scene === "map");
     if (c.scene === "map") fitMapView(c.map || "hijra");
     setPalette(PAL[c.scene] || PAL.night);
-    setCrowd(c.crowd || null);
+    // la 3D (stage3d.js) prend en charge les foules et les cartes quand le navigateur le permet
+    gl = !!(U.stage3d && U.stage3d.handles(c));
+    stage.classList.toggle("gl-on", gl);
+    if (U.stage3d) U.stage3d.setChapter(gl ? c : null);
+    setCrowd(gl ? null : c.crowd || null);
     fxMode = c.fx || null;
     const hud = $("#hud");
     if (c.type === "event") {
@@ -664,6 +668,7 @@
   /* Effets et foules (canvas avant-plan)                                */
   /* ------------------------------------------------------------------ */
   let fxMode = null;
+  let gl = false;
   const sand = Array.from({ length: 140 }, (_, i) => ({ x: hash(i, 11), y: 0.35 + hash(i, 13) * 0.6, v: 0.02 + hash(i, 17) * 0.05, r: 0.6 + hash(i, 19) * 1.4 }));
   const birds = Array.from({ length: 46 }, (_, i) => ({ dx: hash(i, 23) * 0.28, dy: hash(i, 29) * 0.16, ph: hash(i, 31) * 6.28, s: 0.7 + hash(i, 37) * 0.6 }));
   const fall = Array.from({ length: 70 }, (_, i) => ({ x: hash(i, 41), y: hash(i, 43), v: 0.04 + hash(i, 47) * 0.05 }));
@@ -714,6 +719,7 @@
     if (fxMode === "rays") drawRays(t, p);
     if (fxMode === "isra") drawIsra(t, p);
     drawCrowd(dt, t, p);
+    if (gl) U.stage3d.overlay(fctx, label, legend);
   }
 
   function drawRays(t, p) {
@@ -812,11 +818,12 @@
     out[1] = cy + r * Math.sin(th) * flat;
   }
   // chaque formation : nombre de points, échelle (personnes par point), étiquettes et position de chaque point
-  function formation(name) {
+  // L'espace (Sp) dit où poser les points : à l'écran pour la 2D, sur le sol pour la 3D (stage3d.js).
+  function formation(name, Sp) {
     const T = U.T();
-    const sp = mobile ? 3 : 4.4;
-    const X = (u) => fb.x + fb.w * u, Y = (v) => fb.y + fb.h * v;
-    const LY = fb.y + (mobile ? 2 : 16), LYH = fb.y - (mobile ? 34 : 50); // étiquettes : au-dessus des rangs, ou plus haut pour les grandes foules
+    const { X, Y, sp, LY, LYH } = Sp;
+    const mobile = Sp.mobile;
+    const fb = { w: Sp.w, h: Sp.h };
     const big = mobile ? 2 : 1;
     switch (name) {
       case "aqaba": return {
@@ -890,7 +897,7 @@
               const k = i - n, th = (k / 360) * Math.PI * 2;
               const gone = smooth(clamp((p - 0.45) / 0.3));
               o[0] = cx + Math.cos(th) * fb.h * 0.32; o[1] = cy + Math.sin(th) * fb.h * 0.2 + gone * 30 * hash(k, 2);
-              D.ta[i] = 0.9 * (1 - gone); return 3;
+              o[2] = 0.9 * (1 - gone); return 3;
             }
             const s = i % 4, f = smooth(clamp(p * 1.7 - hash(i, 9) * 0.6));
             const starts = [[X(-0.1), Y(0.5)], [X(1.1), Y(0.45)], [X(0.25), Y(-0.6)], [X(0.8), Y(1.4)]];
@@ -919,7 +926,7 @@
         pos: (i, p, t, o) => {
           const u = (hash(i, 31) + t * 0.012) % 1;
           o[0] = X(1 - u); o[1] = Y(0.5 + Math.sin(u * 7) * 0.22) + (hash(i, 32) - 0.5) * fb.h * 0.22;
-          D.ta[i] = Math.min(1, u * 6, (1 - u) * 6);
+          o[2] = Math.min(1, u * 6, (1 - u) * 6);
           return 0;
         }
       };
@@ -932,7 +939,7 @@
           const sx = X(0.5) + Math.cos(ang) * fb.w * 0.75, sy = Y(0.5) + Math.sin(ang) * fb.h * 1.4;
           const d = [0, 0]; diskPos(i, 1200, X(0.5), Y(0.5), fb.w * 0.28, 0.4, d);
           o[0] = lerp(sx + (k % 6) * sp, d[0], arrive); o[1] = lerp(sy + Math.floor(k / 6) * sp, d[1], arrive);
-          D.ta[i] = arrive > 0.01 ? 1 : 0.5;
+          o[2] = arrive > 0.01 ? 1 : 0.5;
           return 2;
         }
       };
@@ -944,7 +951,7 @@
             const f = smooth(clamp(p * 1.5 - hash(i, 51) * 0.5));
             const d = [0, 0]; diskPos(i, n, X(0.5), Y(0.6), fb.w * 0.5, mobile ? 0.42 : 0.32, d);
             if (Math.abs(d[0] - X(0.5)) < fb.w * 0.14 && d[1] < Y(0.55)) d[1] = Y(0.55) + hash(i, 52) * fb.h * 0.2; // pas sur la colline
-            o[0] = d[0]; o[1] = lerp(H + 20, d[1], f);
+            o[0] = d[0]; o[1] = lerp(Sp.enter, d[1], f);
             return 2;
           }
         };
@@ -952,17 +959,25 @@
     }
     return null;
   }
+  function screenSpace() {
+    return {
+      X: (u) => fb.x + fb.w * u, Y: (v) => fb.y + fb.h * v, w: fb.w, h: fb.h, sp: mobile ? 3 : 4.4, mobile,
+      LY: fb.y + (mobile ? 2 : 16), LYH: fb.y - (mobile ? 34 : 50), // étiquettes : au-dessus des rangs, ou plus haut pour les grandes foules
+      enter: H + 20
+    };
+  }
   function drawCrowd(dt, t, p) {
-    if (crowdName && !crowdFormation) crowdFormation = formation(crowdName);
+    if (crowdName && !crowdFormation) crowdFormation = formation(crowdName, screenSpace());
     const F = crowdName ? crowdFormation : null;
     const n = F ? Math.min(F.n, MAXDOTS) : 0;
-    const out = [0, 0];
+    const out = [0, 0, 1];
     const k = reduceMotion ? 1 : 1 - Math.exp(-dt * 3.2);
     const since = (performance.now() - crowdT0) / 1000;
     for (let i = 0; i < MAXDOTS; i++) {
       if (i < n) {
-        D.ta[i] = 1;
+        out[2] = 1;
         D.c[i] = F.pos(i, p, t, out);
+        D.ta[i] = out[2];
         const kk = since > hash(i, 81) * 0.6 ? Math.min(1, k * (0.6 + hash(i, 83) * 0.8)) : 0;
         D.x[i] += (out[0] - D.x[i]) * kk;
         D.y[i] += (out[1] - D.y[i]) * kk;
@@ -1157,6 +1172,7 @@
     if (storyVisible) {
       const t = now / 1000;
       drawSky(dt, t);
+      if (gl) U.stage3d.render(dt, t, progress, { W, H, fb, mobile });
       drawFx(dt, t);
       updateSvg();
     }
@@ -1179,6 +1195,8 @@
     requestAnimationFrame(frame);
   }
 
+  U.formation = formation;
+  U.crowdColors = () => COLORS.slice();
   U.openChapter = (id) => goTo(id, true);
   U.storyInit = init;
 })();

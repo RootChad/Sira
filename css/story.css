@@ -14,6 +14,8 @@
 /* ---------- Scène fixe ---------- */
 .stage { position: fixed; inset: 0; z-index: 0; overflow: hidden; background: #02040f; }
 .stage canvas { position: absolute; inset: 0; display: block; }
+#glCanvas { width: 100%; height: 100%; pointer-events: none; }
+.stage.gl-on #stageMap { display: none; }
 #sceneSvg { position: absolute; top: 0; left: 0; width: 100%; height: calc(100% - var(--hud-h)); display: block; }
 #fxCanvas { pointer-events: none; }
 .scene { opacity: 0; transition: opacity 1.4s ease; }

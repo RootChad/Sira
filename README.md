@@ -11,6 +11,7 @@ La page s'ouvre sur un **voyage immersif** : on fait défiler la vie du Prophèt
 - **36 scènes** dessinées par le code : la nuit de La Mecque et les oiseaux d'Abraha, la tente de Halima dans le désert, les caravanes de Syrie, la lumière de la grotte de Hira avec le mot « اقرأ », la traversée vers l'Abyssinie, l'arc lumineux de l'Isra' vers Jérusalem, la construction de la mosquée de Médine brique par brique, la boussole de la qibla qui pivote, la Coupole verte…
 - **Les foules sont faites de points** : 313 à Badr face à 1 000, les archers d'Uhud qui quittent la colline, le fossé, 10 000 compagnons qui convergent vers La Mecque pendant que tombent les 360 idoles, plus de 100 000 pèlerins à 'Arafat. Une légende indique combien de personnes représente chaque point.
 - **Cartes animées** : le tracé de l'Hégire se dessine au défilement, avec le compteur de kilomètres ; les lettres aux souverains partent de Médine vers Jérusalem, Ctésiphon, Aksoum, Alexandrie, Bahreïn et Bosra.
+- **3D avec Three.js** : les foules deviennent des milliers de sphères éclairées, vues en perspective, et la caméra tourne doucement avec le défilement. Pendant l'Hégire, l'Arabie apparaît en relief et la caméra suit le voyageur ; les lettres aux souverains s'élèvent en arcs au-dessus de la carte. Sans WebGL, le site reprend automatiquement la version 2D.
 - **Barre de vie** en bas de l'écran : année grégorienne, année de l'Hégire, âge, et position sur les 63 années. On peut cliquer pour sauter à un événement. Un menu liste tous les chapitres.
 - **Ambiance sonore** facultative (vent, mer, carillon), synthétisée dans le navigateur, sans fichier audio.
 
@@ -42,7 +43,7 @@ python3 -m http.server 8000
 # puis ouvrir http://localhost:8000
 ```
 
-Ouvrir `index.html` directement dans le navigateur fonctionne aussi.
+Ouvrir `index.html` directement dans le navigateur fonctionne aussi, mais sans la 3D : les modules JavaScript demandent un serveur.
 
 ### Publier avec GitHub Pages
 
@@ -58,6 +59,8 @@ js/story.js         le voyage : chapitres, décors, foules, cartes animées, son
 js/data.js          contenu trilingue : événements, lieux, itinéraires, chiffres, famille, quiz
 js/i18n.js          textes de l'interface (fr / en / ar)
 js/app.js           exploration (carte, chiffres, famille, quiz) et langue
+js/stage3d.js       la 3D du voyage (foules et cartes), module ES
+js/vendor/          Three.js 0.169 (licence MIT), fourni avec le site
 js/map-data.js      contour des terres, lieux et itinéraires projetés (généré)
 tools/              script de génération de la carte
 ```

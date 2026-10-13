@@ -119,6 +119,8 @@
 
   function buildMap() {
     const s = $("#mapSvg");
+    // le relief réel (data/map-relief.jpg, généré par tools/generate-relief.py), puis le trait de côte
+    s.appendChild(svg("image", { href: "data/map-relief.jpg", x: 0, y: 0, width: 600, height: 760, preserveAspectRatio: "none", class: "map-relief" }));
     s.appendChild(svg("path", { class: "map-land", d: M.land }));
     // rose des vents
     const rose = svg("g", { id: "mapRose" });

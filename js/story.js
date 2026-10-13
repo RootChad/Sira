@@ -323,6 +323,7 @@
     const destLabel = (to) => ({ ctesiphon: [-9, -9, "end"], hajar: [-9, -9, "end"], bosra: [-6, -10, "end"], jerusalem: [8, 20, "start"], alexandria: [2, 24, "start"] }[to] || [9, -9, "start"]);
     svg.innerHTML =
       `<rect x="-400" y="-400" width="1400" height="1600" class="sm-sea"/>` +
+      `<image class="sm-relief" href="data/map-relief.jpg" x="0" y="0" width="600" height="760" preserveAspectRatio="none"/>` +
       `<path class="sm-land" d="${M.land}"/>` +
       `<g class="sm-hijra"><path class="sm-route" id="smHijra" d="${smoothPath(M.routes.hijra)}"/>` +
       Object.entries(pinLabel).map(([id, [dx, dy, a]]) => `<g class="sm-pin" data-id="${id}"><circle cx="${P[id][0]}" cy="${P[id][1]}" r="1.5"/><text x="${P[id][0] + dx}" y="${P[id][1] + dy}" text-anchor="${a}"></text></g>`).join("") +
@@ -381,6 +382,7 @@
               <button type="button" class="st-btn st-btn-gold" data-go="p-early">${esc(T.start)}</button>
               <button type="button" class="st-btn st-btn-line" data-film>${esc(T.watchFilm)}</button>
               <button type="button" class="st-btn st-btn-line" data-sound aria-pressed="${Sound.on}">${esc(Sound.on ? T.soundOff : T.soundOn)}</button>
+              ${U.voice && U.voice.supported ? `<button type="button" class="st-btn st-btn-line" data-voice aria-pressed="${U.voice.on}">${esc(U.voice.on ? T.voiceOff : T.voiceOn)}</button>` : ""}
             </div>
             <p class="st-cue" aria-hidden="true"><span></span>${esc(T.scrollCue)}</p>
           </div></section>`;
@@ -444,6 +446,7 @@
     if (more) {
       const card = more.closest(".st-card");
       setOpen(card, !card.classList.contains("open"));
+      if (card.classList.contains("open") && U.voice && U.voice.on) { const c = CHAPTERS.find((x) => x.id === card.dataset.id); if (c) U.voice.say(U.tr(eventById[c.ev]).details, { replace: true }); }
       return;
     }
     const go = ev.target.closest("[data-go]");
@@ -451,6 +454,7 @@
     if (ev.target.closest("[data-film]")) { setPlaying(true); goTo("p-early"); return; }
     const snd = ev.target.closest("[data-sound]");
     if (snd) { toggleSound(); return; }
+    if (ev.target.closest("[data-voice]")) { toggleVoice(); return; }
     const mapLink = ev.target.closest("[data-map]");
     if (mapLink) { ev.preventDefault(); openSheet(mapLink.dataset.map, mapLink); }
   });
@@ -527,7 +531,7 @@
       return `<g class="ms-place"><circle cx="${x}" cy="${y}" r="${fs(5)}" style="stroke-width:${fs(2)}"/>` +
         `<text x="${(x + (left ? -1 : 1) * 9 * k).toFixed(1)}" y="${(y + 4 * k).toFixed(1)}" text-anchor="${left ? "end" : "start"}" style="font-size:${fs(14)}px;stroke-width:${fs(4)}px">${esc(U.tr(S.places[id]))}</text></g>`;
     };
-    svg.innerHTML = `<rect x="-400" y="-400" width="1400" height="1600" class="ms-sea"/><path class="ms-land" d="${M.land}" style="stroke-width:${fs(1)}"/>` + others +
+    svg.innerHTML = `<rect x="-400" y="-400" width="1400" height="1600" class="ms-sea"/><image class="ms-relief" href="data/map-relief.jpg" x="0" y="0" width="600" height="760" preserveAspectRatio="none"/><path class="ms-land" d="${M.land}" style="stroke-width:${fs(1)}"/>` + others +
       (r ? `<path class="ms-route${r.spiritual ? " spiritual" : ""}" id="sheetRoute" d="${smoothPath(pts)}" style="stroke-width:${fs(4)}"/><circle class="ms-traveler" id="sheetTraveler" r="${fs(6)}" cx="${pts[0][0]}" cy="${pts[0][1]}"/>` : "") +
       [...ids].map(label).join("") +
       (!r ? `<circle class="ms-pulse" cx="${M.places[e.place][0]}" cy="${M.places[e.place][1]}" r="${fs(18)}" style="stroke-width:${fs(2)}"/>` : "");
@@ -628,9 +632,9 @@
   const chapterDur = (c) => (gl && U.stage3d && U.stage3d.duration && U.stage3d.duration(c)) || (c.type === "event" ? (c.len || 1.25) * 4000 : 4000);
   const readTime = (c) => {
     if (c.type === "intro") return 800;
-    if (c.type !== "event") return 6500;
+    if (c.type !== "event") return 9000;
     const words = U.tr(eventById[c.ev]).summary.split(/\s+/).length;
-    return Math.max(6500, 2500 + words * 320);
+    return Math.max(9000, 4000 + words * 400);
   };
   function updateMarker() {
     const c = CHAPTERS[activeIndex];
@@ -662,6 +666,7 @@
     stage.classList.toggle("map-on", c.scene === "map");
     if (c.scene === "map") fitMapView(c.map || "hijra");
     setPalette(PAL[c.scene] || PAL.night);
+    narrate(c);
     // la 3D (stage3d.js) prend en charge les foules et les cartes quand le navigateur le permet
     gl = !!(U.stage3d && U.stage3d.handles(c));
     stage.classList.toggle("gl-on", gl);
@@ -721,7 +726,7 @@
   }, { passive: true });
 
   // un geste de molette ou une touche = un chapitre
-  const busy = () => document.body.classList.contains("sheet-open") || document.body.classList.contains("drawer-open");
+  const busy = () => document.body.classList.contains("sheet-open") || document.body.classList.contains("drawer-open") || document.body.classList.contains("cam-free") || document.body.classList.contains("photo-open");
   let wheelAcc = 0, wheelLock = 0;
   window.addEventListener("wheel", (ev) => {
     if (!storyVisible || busy() || ev.ctrlKey) return;
@@ -1270,98 +1275,99 @@
   /* ------------------------------------------------------------------ */
   /* Ambiance sonore (synthétisée, sans fichier)                         */
   /* ------------------------------------------------------------------ */
-  const Sound = (() => {
-    let ctx = null, master, windGain, seaGain, on = false, lastScene = null;
-    function noise(c) {
-      const b = c.createBuffer(1, c.sampleRate * 3, c.sampleRate);
-      const d = b.getChannelData(0);
-      let last = 0;
-      for (let i = 0; i < d.length; i++) { last = (last + 0.04 * (Math.random() * 2 - 1)) / 1.04; d[i] = last * 3.5; }
-      const s = c.createBufferSource(); s.buffer = b; s.loop = true; return s;
-    }
-    function init() {
-      ctx = new (window.AudioContext || window.webkitAudioContext)();
-      master = ctx.createGain(); master.gain.value = 0; master.connect(ctx.destination);
-      // le vent du désert
-      const wind = noise(ctx);
-      const bp = ctx.createBiquadFilter(); bp.type = "bandpass"; bp.frequency.value = 500; bp.Q.value = 0.6;
-      windGain = ctx.createGain(); windGain.gain.value = 0.5;
-      const lfo = ctx.createOscillator(); lfo.frequency.value = 0.08; const lg = ctx.createGain(); lg.gain.value = 0.25; lfo.connect(lg); lg.connect(windGain.gain); lfo.start();
-      const lfo2 = ctx.createOscillator(); lfo2.frequency.value = 0.05; const lg2 = ctx.createGain(); lg2.gain.value = 260; lfo2.connect(lg2); lg2.connect(bp.frequency); lfo2.start();
-      wind.connect(bp); bp.connect(windGain); windGain.connect(master); wind.start();
-      // la mer
-      const sea = noise(ctx);
-      const lp = ctx.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 700;
-      seaGain = ctx.createGain(); seaGain.gain.value = 0;
-      const swell = ctx.createOscillator(); swell.frequency.value = 0.12; const sg = ctx.createGain(); sg.gain.value = 0.3; swell.connect(sg); sg.connect(seaGain.gain); swell.start();
-      sea.connect(lp); lp.connect(seaGain); seaGain.connect(master); sea.start();
-      // une nappe grave et douce
-      const dl = ctx.createBiquadFilter(); dl.type = "lowpass"; dl.frequency.value = 500;
-      const dg = ctx.createGain(); dg.gain.value = 0.045; dl.connect(dg); dg.connect(master);
-      [110, 164.8, 220.5].forEach((f, i) => { const o = ctx.createOscillator(); o.type = "sine"; o.frequency.value = f; o.detune.value = i * 4; o.connect(dl); o.start(); });
-    }
-    function chime() {
-      const now = ctx.currentTime;
-      [523.25, 783.99, 1046.5].forEach((f, i) => {
-        const o = ctx.createOscillator(), g = ctx.createGain(), t0 = now + i * 0.25;
-        o.type = "sine"; o.frequency.value = f;
-        g.gain.setValueAtTime(0, t0); g.gain.linearRampToValueAtTime(0.06, t0 + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t0 + 3.5);
-        o.connect(g); g.connect(master); o.start(t0); o.stop(t0 + 3.6);
-      });
-    }
-    return {
-      get on() { return on; },
-      toggle() {
-        if (!ctx) { try { init(); } catch (e) { return false; } }
-        on = !on;
-        ctx.resume();
-        master.gain.cancelScheduledValues(ctx.currentTime);
-        master.gain.setValueAtTime(master.gain.value, ctx.currentTime);
-        master.gain.linearRampToValueAtTime(on ? 0.5 : 0, ctx.currentTime + 1.2);
-        if (on && lastScene) this.scene(lastScene, true);
-        return on;
-      },
-      scene(c, force) {
-        if (!force && lastScene === c) return;
-        lastScene = c;
-        if (!ctx || !on) return;
-        const t = ctx.currentTime;
-        const isSea = c.scene === "sea";
-        const quiet = c.scene === "hira" || c.scene === "isra" || c.scene === "dome";
-        seaGain.gain.linearRampToValueAtTime(isSea ? 0.6 : 0, t + 1.5);
-        windGain.gain.linearRampToValueAtTime(isSea ? 0.15 : quiet ? 0.2 : c.fx === "wind" ? 0.9 : 0.5, t + 1.5);
-        if (c.ev === "revelation" || c.ev === "isra" || c.type === "period") chime();
-      }
-    };
-  })();
-  function toggleSound() {
-    const on = Sound.toggle();
-    $$("[data-sound]").forEach((b) => {
-      b.setAttribute("aria-pressed", String(on));
-      if (b.id !== "soundBtn") b.textContent = on ? U.T().soundOff : U.T().soundOn;
+  // le son est synthétisé par js/sound.js ; la voix par js/voice.js
+  const Sound = {
+    get on() { return !!(U.sound && U.sound.on); },
+    toggle(v) { return U.sound ? U.sound.toggle(v) : false; },
+    scene(c) { if (U.sound) U.sound.scene(c); }
+  };
+  /* --- le menu du son : voix, ambiance, musique --- */
+  function syncAudio() {
+    const T = U.T(), v = !!(U.voice && U.voice.on), snd = Sound.on;
+    $$("[data-audio]").forEach((b) => {
+      const k = b.dataset.audio;
+      const val = k === "voice" ? v : snd && U.sound && U.sound[k];
+      b.setAttribute("aria-checked", String(!!val));
     });
-    $("#soundBtn").setAttribute("aria-label", on ? U.T().soundOff : U.T().soundOn);
+    $$("[data-sound]").forEach((b) => { b.setAttribute("aria-pressed", String(snd)); if (b.id !== "soundBtn") b.textContent = snd ? T.soundOff : T.soundOn; });
+    $$("[data-voice]").forEach((b) => { b.setAttribute("aria-pressed", String(v)); b.textContent = v ? T.voiceOff : T.voiceOn; });
+    const btn = $("#soundBtn");
+    btn.classList.toggle("on", v || snd);
+    btn.setAttribute("aria-pressed", String(v || snd));
+    const note = $("#voiceNote");
+    if (note) { const miss = U.voice && U.voice.supported && v && !U.voice.has(document.documentElement.lang); const none = U.voice && !U.voice.supported; note.hidden = !(miss || none); note.textContent = none ? T.voiceNone : T.voiceMissing; }
   }
-  $("#soundBtn").addEventListener("click", toggleSound);
+  function toggleSound(force) {
+    const on = Sound.toggle(force);
+    if (on && U.sound && !U.sound.ambient && !U.sound.music) { U.sound.setPart("ambient", true); U.sound.setPart("music", true); }
+    if (on) Sound.scene(CHAPTERS[activeIndex] || CHAPTERS[0]);
+    syncAudio();
+  }
+  function toggleVoice(force) {
+    if (!U.voice) return;
+    const on = U.voice.set(force === undefined ? !U.voice.on : force);
+    if (on) narrate(CHAPTERS[activeIndex], true);
+    syncAudio();
+  }
+  // ce que la voix lit en arrivant sur un chapitre
+  function narrate(c, replace = true) {
+    if (!U.voice || !U.voice.on || !c) return;
+    const T = U.T();
+    let text = "";
+    if (c.type === "event") { const e = eventById[c.ev], t = U.tr(e); text = t.title + ". " + t.summary; }
+    else if (c.type === "period") { const p = S.periods.find((x) => x.id === c.period); text = U.tr(p) + ". " + T.periodLines[c.period]; }
+    else if (c.type === "intro") text = T.introTitle + ". " + T.introLead;
+    else if (c.type === "outro") text = T.outroLead;
+    U.voice.say(text, { replace });
+  }
+  const menu = $("#audioMenu");
+  function openMenu(v) {
+    if (!menu) return;
+    menu.hidden = !v;
+    $("#soundBtn").setAttribute("aria-expanded", String(v));
+    if (v) { syncAudio(); const r = $("#soundBtn").getBoundingClientRect(); menu.style.top = r.bottom + 8 + "px"; }
+  }
+  $("#soundBtn").addEventListener("click", (e) => { e.stopPropagation(); openMenu(menu ? menu.hidden : false); });
+  if (menu) {
+    menu.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const b = e.target.closest("[data-audio]");
+      if (!b) return;
+      const k = b.dataset.audio;
+      if (k === "voice") { toggleVoice(); return; }
+      const now = !(Sound.on && U.sound[k]);
+      // le son était coupé : on n'allume que ce qui vient d'être choisi
+      if (now && !Sound.on) { U.sound.setPart(k === "music" ? "ambient" : "music", false); U.sound.setPart(k, true); Sound.toggle(true); Sound.scene(CHAPTERS[activeIndex] || CHAPTERS[0]); syncAudio(); return; }
+      U.sound.setPart(k, now);
+      if (!U.sound.ambient && !U.sound.music && Sound.on) toggleSound(false);
+      syncAudio();
+    });
+    document.addEventListener("click", (e) => { if (!menu.hidden && !e.target.closest("#audioMenu")) openMenu(false); });
+    document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !menu.hidden) { openMenu(false); $("#soundBtn").focus(); } });
+  }
+  if (U.voice) U.voice.onChange(() => syncAudio());
 
   /* ------------------------------------------------------------------ */
   /* Boucle                                                              */
   /* ------------------------------------------------------------------ */
   let last = performance.now();
   function frame(now) {
-    const dt = Math.min(0.05, (now - last) / 1000);
+    const raw = now - last, dt = Math.min(0.05, raw / 1000);
     last = now;
     if (storyVisible) {
       const t = now / 1000;
       const c = CHAPTERS[activeIndex];
       if (c) {
+        // la scène attend la voix (ou la pause) avant de passer à la phase suivante
+        if (gl && U.stage3d.hold && U.stage3d.hold(progress)) chapterT0 += raw;
         const el = now - chapterT0;
         progress = reduceMotion ? 1 : clamp(el / chapterDur(c));
         updateMarker();
         // lecture automatique : on passe au chapitre suivant quand la scène et le texte ont eu leur temps
         const total = Math.max(chapterDur(c), readTime(c)) + 600;
         $("#hudPlayBar").style.width = playing ? (clamp(el / total) * 100).toFixed(1) + "%" : "0";
-        if (playing && el > total && !document.body.classList.contains("sheet-open") && !document.body.classList.contains("drawer-open")) {
+        const talking = U.voice && U.voice.on && U.voice.speaking;
+        if (playing && el > total && !talking && !document.body.classList.contains("sheet-open") && !document.body.classList.contains("drawer-open") && !document.body.classList.contains("cam-free")) {
           if (activeIndex < CHAPTERS.length - 1) { chapterT0 = now; goTo(CHAPTERS[activeIndex + 1].id); }
           if (activeIndex + 1 >= CHAPTERS.length - 1) setPlaying(false);
         }
@@ -1389,7 +1395,7 @@
       if (!storyVisible && playing) setPlaying(false);
     }, { rootMargin: "-80px 0px -30% 0px" }).observe($("#story"));
     document.documentElement.classList.add("snap");
-    U.onLang.push(() => { renderStory(); resize(); setPlaying(playing); if (!$("#mapSheet").hidden) renderSheet(); $("#soundBtn").setAttribute("aria-label", Sound.on ? U.T().soundOff : U.T().soundOn); });
+    U.onLang.push(() => { renderStory(); resize(); setPlaying(playing); if (!$("#mapSheet").hidden) renderSheet(); syncAudio(); });
     requestAnimationFrame(frame);
   }
 

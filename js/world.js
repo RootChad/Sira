@@ -77,9 +77,10 @@ function gridH(g, lon, lat) {
 /* Couleurs du sol                                                     */
 /* ------------------------------------------------------------------ */
 const col = (h) => new THREE.Color(h);
-const SAND = col("#dcbc8b"), SAND2 = col("#c39a66"), DUNE = col("#e3b97a"), COAST = col("#e6dbbd"),
-  ROCK = col("#8c6c52"), ROCK2 = col("#5c4739"), BASALT = col("#36302c"), GREEN = col("#4a6532"),
-  HIGHGREEN = col("#6c7748"), FLOOR = col("#3a5a66");
+// une palette de désert d'Arabie : sable clair, plaines de gravier, lits d'oued pâles, granit brun-rouge du Hijaz
+const SAND = col("#e2c79c"), SAND2 = col("#cfaa78"), DUNE = col("#e9b97c"), COAST = col("#eee2c6"), GRAVEL = col("#b7a184"), WADI = col("#ecdcba"),
+  ROCK = col("#8e6b52"), ROCK2 = col("#5b4335"), GRANITE = col("#7a4c3a"), BASALT = col("#33302e"), GREEN = col("#4f6b34"),
+  HIGHGREEN = col("#6f7a4c"), FLOOR = col("#2f5f6e"), SHALLOW = col("#7cc4bd");
 // champs de lave (harra), approximatifs
 const HARRA = [[39.95, 23.3, 0.35, 1.2], [40.2, 25.6, 0.55, 0.45], [37.4, 27.0, 0.45, 0.6], [41.4, 22.8, 0.3, 0.3], [38.6, 25.4, 0.35, 0.35],
   [39.665, 24.43, 0.05, 0.12], [39.548, 24.46, 0.035, 0.1], [36.9, 32.4, 0.6, 0.5], [40.7, 19.0, 0.3, 0.4]];
@@ -93,15 +94,22 @@ function segDist(p, a, b) {
   return Math.hypot(p[0] - a[0] - t * dx, p[1] - a[1] - t * dy);
 }
 const tmp = new THREE.Color();
-function groundColor(lon, lat, h, slope, out, fine) {
-  if (h <= 0) { out.copy(FLOOR).lerp(COAST, sstep(-60, 0, h) * 0.6); return out; }
+function groundColor(lon, lat, h, slope, out, fine, concave = 0) {
+  // sous la mer : des lagons turquoise près des côtes, un bleu profond au large
+  if (h <= 0) { out.copy(FLOOR).lerp(SHALLOW, sstep(-45, -2, h)).lerp(COAST, sstep(-6, 0, h) * 0.5); return out; }
   const f = fine ? 40 : 6;
   const n = fbm(lon * f, lat * f), n2 = fbm(lon * f * 2.7 + 9, lat * f * 2.7);
-  out.copy(SAND).lerp(SAND2, n);
-  if (lon > 44 && lat > 17 && lat < 23) out.lerp(DUNE, 0.5 * n2); // le Rub' al-Khali
+  out.copy(SAND).lerp(SAND2, n * 0.8);
+  // plaines de gravier (reg) sur les plateaux, sable dans les creux
+  out.lerp(GRAVEL, sstep(250, 900, h) * 0.55 * (0.4 + 0.6 * n2));
+  if (lon > 44 && lat > 17 && lat < 23) out.lerp(DUNE, 0.55 * n2); // le Rub' al-Khali
+  if (lat > 27 && lat < 30 && lon > 38 && lon < 44) out.lerp(DUNE, 0.35 * n2); // le Nefoud
   if (h < 30) out.lerp(COAST, sstep(30, 0, h) * 0.5);
-  const rock = clamp(sstep(0.1, 0.32, slope) + sstep(700, 2200, h) * 0.45);
-  out.lerp(tmp.copy(ROCK).lerp(ROCK2, n2), rock);
+  // les lits d'oued : pâles, plats, au fond des vallées
+  out.lerp(WADI, clamp(concave * 1.6) * (1 - sstep(0.06, 0.2, slope)) * 0.75);
+  // la roche : pentes fortes, crêtes, et le granit sombre des montagnes du Hijaz
+  const rock = clamp(sstep(0.09, 0.3, slope) + sstep(900, 2300, h) * 0.4 + clamp(-concave * 1.2) * 0.35);
+  out.lerp(tmp.copy(ROCK).lerp(lon < 43 && lat < 28 ? GRANITE : ROCK2, n2 * 0.9), rock);
   // champs de lave : un contour déformé par le bruit, pour des taches irrégulières
   let harra = 0;
   for (const [x, y, rx, ry] of HARRA) {
@@ -110,7 +118,7 @@ function groundColor(lon, lat, h, slope, out, fine) {
     const warp = (fbm(lon * 3.1 + x, lat * 3.1 + y) - 0.5) * 1.1 + (fbm(lon * 11, lat * 11) - 0.5) * 0.35;
     harra = Math.max(harra, sstep(1.05, 0.6, d + warp) * (0.55 + 0.45 * n2));
   }
-  if (harra) out.lerp(BASALT, harra * 0.8);
+  if (harra) out.lerp(BASALT, harra * 0.82);
   if (lat < 15.5 && h > 1400) out.lerp(HIGHGREEN, 0.55 * n);
   if (lat < 17.5 && lon > 42.6 && h > 1700) out.lerp(HIGHGREEN, 0.45 * n);
   if (lat > 32.5 && lon < 37.5) out.lerp(HIGHGREEN, 0.4);
@@ -151,6 +159,9 @@ function setup({ region, locals, hAt, yAt }) {
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 0.55;
+  // les ombres portées : arbres, maisons, pions et chevaux sur le sol
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(42, 1, 0.01, 60000);
@@ -170,6 +181,9 @@ function setup({ region, locals, hAt, yAt }) {
   const moon = new THREE.DirectionalLight(0x9db4ff, 0.3);
   moon.position.set(-0.4, 0.8, 0.3);
   const hemi = new THREE.HemisphereLight(0xbcd3ea, 0x7a6248, 0.6);
+  sun.castShadow = true;
+  sun.shadow.mapSize.set(mobile() ? 1024 : 2048, mobile() ? 1024 : 2048);
+  sun.shadow.bias = -0.0003;
   scene.add(sun, sun.target, moon, hemi);
 
   const starGeo = new THREE.BufferGeometry();
@@ -214,8 +228,13 @@ function setup({ region, locals, hAt, yAt }) {
     const c = new THREE.Color();
     const fine = g.step < 0.02;
     const skirtOn = g !== region;
+    // le creux ou la bosse du relief autour de chaque point (les oueds, les crêtes)
+    const cellM = dec * g.step * 111000;
     for (let k = 0; k < cols * rows; k++) {
-      groundColor(lonlat[k * 2], lonlat[k * 2 + 1], hs[k], 1 - nor[k * 3 + 1], c, fine);
+      const i = k % cols, j = (k - i) / cols;
+      const hl = hs[j * cols + Math.max(0, i - 1)], hr = hs[j * cols + Math.min(cols - 1, i + 1)], hu = hs[Math.max(0, j - 1) * cols + i], hd = hs[Math.min(rows - 1, j + 1) * cols + i];
+      const concave = (((hl + hr + hu + hd) / 4 - hs[k]) / cellM) * 15;
+      groundColor(lonlat[k * 2], lonlat[k * 2 + 1], hs[k], 1 - nor[k * 3 + 1], c, fine, concave);
       colors[k * 3] = c.r; colors[k * 3 + 1] = c.g; colors[k * 3 + 2] = c.b;
     }
     geo.setAttribute("color", new THREE.BufferAttribute(colors, 3));
@@ -259,14 +278,18 @@ function setup({ region, locals, hAt, yAt }) {
     return m;
   };
   // construction progressive : le fond d'abord, puis une zone par étape, pour ne pas figer la page
-  scene.add(new THREE.Mesh(buildTerrain(region, isMobile ? 2 : 1, sinkUnder(locals))[0], groundMat));
+  const base = new THREE.Mesh(buildTerrain(region, isMobile ? 2 : 1, sinkUnder(locals))[0], groundMat);
+  base.receiveShadow = true;
+  scene.add(base);
   const queue = [...locals].sort((a, b) => b.step - a.step);
   const buildNext = () => {
     const g = queue.shift();
     if (!g) return;
     const finer = locals.filter((o) => o.step < g.step);
     const [geo, skirt] = buildTerrain(g, isMobile ? 2 : 1, finer.length ? sinkUnder(finer) : null);
-    scene.add(new THREE.Mesh(geo, groundMat), new THREE.Mesh(skirt, skirtMat));
+    const m = new THREE.Mesh(geo, groundMat);
+    m.receiveShadow = true;
+    scene.add(m, new THREE.Mesh(skirt, skirtMat));
     setTimeout(buildNext, 30);
   };
   setTimeout(buildNext, 30);
@@ -280,7 +303,7 @@ function setup({ region, locals, hAt, yAt }) {
   const localG = new THREE.Group();
   scene.add(localG);
   // la mer suit la caméra, à la taille de la vue : un plan géant fausse la profondeur
-  const sea = new THREE.Mesh(new THREE.PlaneGeometry(1, 1, 24, 24), new THREE.MeshStandardMaterial({ color: 0x16506d, roughness: 0.12, metalness: 0, transparent: true, opacity: 0.9, polygonOffset: true, polygonOffsetFactor: 2, polygonOffsetUnits: 2 }));
+  const sea = new THREE.Mesh(new THREE.PlaneGeometry(1, 1, 24, 24), new THREE.MeshStandardMaterial({ color: 0x15506a, roughness: 0.1, metalness: 0, transparent: true, opacity: 0.8, polygonOffset: true, polygonOffsetFactor: 2, polygonOffsetUnits: 2 }));
   decor.patchSea(sea.material);
   sea.rotation.x = -Math.PI / 2;
   sea.position.y = 0.002;
@@ -315,6 +338,7 @@ function setup({ region, locals, hAt, yAt }) {
   dots.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
   dots.frustumCulled = false;
   dots.count = 0;
+  dots.castShadow = true;
   scene.add(dots);
   const palette = (U.crowdColors ? U.crowdColors() : ["#f4d27e"]).map((c) => new THREE.Color(c));
   for (let i = 0; i < MAXD; i++) dots.setColorAt(i, palette[0]);
@@ -333,7 +357,7 @@ function setup({ region, locals, hAt, yAt }) {
   let chapter = null, view = null, t0 = performance.now();
   const cam = { x: X(41), z: Z(23), dist: 2300, pitch: 55, head: 0 };
   let fly = null, hour = 23, hourFrom = 23, hourTo = 23, envHour = -99, hourT0 = performance.now();
-  let battle = null, bPhase = -1, lastP = 0;
+  let battle = null, bPhase = -1, lastP = 0, spoken = -1, voiceCut = false, free = false, paused = false;
   const marks = [], hots = [];
   let routeObj = null, arcs = [], beam = null, travel = null;
 
@@ -383,7 +407,8 @@ function setup({ region, locals, hAt, yAt }) {
     battle = battles.has(c.id) && battles.start(c.id) ? battles.def(c.id) : null;
     if (!battle) battles.stop();
     view.battle = !!battle;
-    bPhase = 0;
+    bPhase = 0; spoken = -1; voiceCut = false; paused = false;
+    if (free) setFree(false, true);
     renderPanel();
     // vol de la caméra vers le nouveau lieu
     const to = battle ? bcam(0) : { x: X(view.at[0]), z: Z(view.at[1]), dist: view.dist, pitch: view.pitch, head: view.head };
@@ -572,14 +597,14 @@ function setup({ region, locals, hAt, yAt }) {
       cam.pitch = lerp(fly.from.pitch, fly.to.pitch, e) + (fly.bump > 0 ? 22 * Math.sin(Math.PI * e) : 0);
       cam.head = lerp(fly.from.head, sh(fly.from.head, fly.to.head), e);
       if (k >= 1) fly = null;
-    } else if (!reduceMotion) cam.head += (view.spin || 0) * dt;
+    } else if (!reduceMotion && !free) cam.head += (view.spin || 0) * dt;
     // l'itinéraire se trace, et la caméra peut suivre le voyageur
     if (routeObj) {
       const q = view === WD.views.hijra ? smooth(clamp((p - 0.18) / 0.72)) : smooth(clamp(p / 0.8));
       routeObj.geometry.setDrawRange(0, Math.floor((routeObj.userData.count * q) / 6) * 6);
       const pt = routeObj.userData.curve.getPointAt(Math.max(0.0001, q));
       travel.position.copy(pt);
-      if (view.follow && !fly) { cam.x = lerp(cam.x, pt.x, 0.08); cam.z = lerp(cam.z, pt.z, 0.08); }
+      if (view.follow && !fly && !free) { cam.x = lerp(cam.x, pt.x, 0.08); cam.z = lerp(cam.z, pt.z, 0.08); }
       routeQ = q;
     }
     arcs.forEach((a, i) => {
@@ -594,22 +619,32 @@ function setup({ region, locals, hAt, yAt }) {
     if (beam && view.isra) { const w = smooth(clamp((p - 0.5) / 0.35)); beam.scale.y = Math.max(0.001, w * 2600); beam.position.y = beam.scale.y / 2; }
     if (beam && view.beam) beam.material.opacity = 0.5 * smooth(clamp(p * 1.6));
     // la bataille : positions, phases, caméra et heure de chaque phase
-    lastP = p;
     const pxScale = (H * renderer.getPixelRatio()) / (2 * Math.tan((camera.fov * D2R) / 2));
     if (battle) {
+      p = toBattle(p);
       benv.camTarget[0] = cam.x; benv.camTarget[1] = cam.z;
       const ph = battles.update(dt, t, p, pxScale);
       if (ph !== bPhase && ph >= 0) {
         bPhase = ph;
-        const to = bcam(ph);
-        const travelKm = Math.hypot(to.x - cam.x, to.z - cam.z);
-        fly = reduceMotion ? null : { from: { ...cam }, to, t0: now, dur: 2200 + Math.min(2600, Math.sqrt(travelKm) * 160), bump: Math.max(0, travelKm * 0.6 - (cam.dist + to.dist) / 2) };
-        if (!fly) Object.assign(cam, to);
+        // en caméra libre, on ne reprend pas la main : seul le récit avance
+        if (!free) {
+          const to = bcam(ph);
+          const travelKm = Math.hypot(to.x - cam.x, to.z - cam.z);
+          fly = reduceMotion ? null : { from: { ...cam }, to, t0: now, dur: 2200 + Math.min(2600, Math.sqrt(travelKm) * 160), bump: Math.max(0, travelKm * 0.6 - (cam.dist + to.dist) / 2) };
+          if (!fly) Object.assign(cam, to);
+        }
         hourFrom = hour; hourTo = battle.phases[ph].hour; hourT0 = now;
         renderPanel();
       }
+      if (ph !== spoken && ph >= 0) {
+        spoken = ph;
+        const x = U.tr(battle.phases[ph]);
+        if (U.voice) U.voice.say(x.t + ". " + x.d, { replace: voiceCut });
+        voiceCut = false;
+      }
       updatePanel(p);
     }
+    lastP = p;
     // l'heure : transition douce, ou la nuit qui laisse place à l'aube pendant l'Hégire
     const since = (now - hourT0) / 1000;
     if (view.cycle) hour = lerp(22, 30.5, smooth(clamp(p))) % 24;
@@ -617,6 +652,7 @@ function setup({ region, locals, hAt, yAt }) {
     hour = (hour + 24) % 24;
     applyHour(hour);
     decor.update(dt, t, cam, hour, pxScale);
+    soundMood(now);
     // la foule
     if (F && crowd) renderCrowd(dt, t, p);
     else dots.count = 0;
@@ -632,9 +668,16 @@ function setup({ region, locals, hAt, yAt }) {
     camera.near = Math.max(0.005, cam.dist * 0.002);
     camera.updateProjectionMatrix();
     camera.lookAt(tx, ty, tz);
+    // la boîte des ombres suit le sujet, à la taille de la vue
+    const S = clamp(cam.dist * 1.15, 0.35, 9), sc = sun.shadow.camera;
+    sun.target.position.set(tx, ty, tz);
+    sun.position.set(tx + sunVec.x * S * 3, ty + Math.max(0.05, sunVec.y) * S * 3, tz + sunVec.z * S * 3);
+    sun.target.updateMatrixWorld();
+    if (sc.right !== S) { sc.left = -S; sc.right = S; sc.top = S; sc.bottom = -S; sc.near = 0.01; sc.far = S * 8; sc.updateProjectionMatrix(); sun.shadow.normalBias = (S / 1024) * 1.5; }
     // le sujet se place à côté du texte
     const rtl = document.documentElement.dir === "rtl";
-    const ax = mobile() ? W / 2 : W * (rtl ? 0.34 : 0.66), ay = mobile() ? H * 0.32 : H * 0.5;
+    // sur mobile, le sujet se place entre le panneau du haut et la fiche du bas
+    const ax = mobile() ? W / 2 : W * (rtl ? 0.34 : 0.66), ay = mobile() ? H * (battle && !free ? 0.42 : free ? 0.48 : 0.32) : H * 0.5;
     camera.setViewOffset(W, H, W / 2 - ax, H / 2 - ay, W, H);
     scene.fog.density = 0.24 / Math.max(cam.dist, 0.5);
     sky.position.copy(camera.position);
@@ -794,6 +837,8 @@ function setup({ region, locals, hAt, yAt }) {
       steps.dataset.ch = chapter.id; steps.dataset.lang = document.documentElement.lang;
       steps.innerHTML = battle.phases.map((x, i) => `<button type="button" data-ph="${i}" aria-label="${T.phase} ${U.num(i + 1)} : ${U.tr(x).t.replace(/"/g, "&quot;")}"><i></i></button>`).join("");
     }
+    const pb = panel.querySelector(".bt-pause");
+    if (pb) { pb.setAttribute("aria-pressed", String(paused)); pb.setAttribute("aria-label", paused ? T.resume : T.pause); pb.classList.toggle("paused", paused); }
     [...steps.children].forEach((b, i) => { b.classList.toggle("done", i < bPhase); b.classList.toggle("on", i === bPhase); b.setAttribute("aria-current", i === bPhase ? "step" : "false"); });
   }
   function updatePanel(p) {
@@ -804,15 +849,139 @@ function setup({ region, locals, hAt, yAt }) {
   }
   if (panel) panel.addEventListener("click", (ev) => {
     const b = ev.target.closest("[data-ph]");
-    if (b && battle && U.seekChapter) { const ph = battle.phases[+b.dataset.ph]; U.seekChapter(ph.p + 0.002); }
-    if (ev.target.closest(".bt-replay") && U.seekChapter) U.seekChapter(0);
+    if (b && battle && U.seekChapter) { voiceCut = true; spoken = -1; U.seekChapter(storyAt(+b.dataset.ph) + 0.001); }
+    if (ev.target.closest(".bt-replay") && U.seekChapter) { voiceCut = true; spoken = -1; paused = false; U.seekChapter(0); renderPanel(); }
+    if (ev.target.closest(".bt-pause")) { paused = !paused; renderPanel(); }
+    if (ev.target.closest(".bt-toggle")) panel.classList.toggle("open");
   });
 
   function handles(c) { return !!c; }
-  // la durée d'un chapitre de bataille : le temps de la simulation
-  const duration = (c) => (c && battles.has(c.id) ? battles.def(c.id).dur * 1000 : 0);
+  /* --- le rythme : chaque phase dure au moins le temps de la lire --- */
+  function timing(b) {
+    const D = b.phases.map((x, i) => {
+      const e = i + 1 < b.phases.length ? b.phases[i + 1].p : 1, tx = U.tr(x);
+      const words = (tx.t + " " + tx.d).split(/\s+/).length;
+      return Math.max((e - x.p) * b.dur, 6 + words * 0.38);
+    });
+    const cum = [0];
+    D.forEach((d) => cum.push(cum[cum.length - 1] + d));
+    return { D, cum, total: cum[cum.length - 1] };
+  }
+  // temps du récit (0 → 1) → progression de la bataille
+  function toBattle(ps) {
+    const T = timing(battle), s = clamp(ps) * T.total, ph = battle.phases;
+    let i = 0;
+    while (i < ph.length - 1 && s >= T.cum[i + 1]) i++;
+    const f = clamp((s - T.cum[i]) / T.D[i]), e = i + 1 < ph.length ? ph[i + 1].p : 1;
+    return lerp(ph[i].p, e, f);
+  }
+  const storyAt = (i) => { const T = timing(battle); return T.cum[i] / T.total; };
+  const duration = (c) => (c && battles.has(c.id) ? timing(battles.def(c.id)).total * 1000 : 0);
+  // le récit attend : la voix n'a pas fini la phase, ou la scène est en pause
+  function hold(ps) {
+    if (!battle) return false;
+    if (paused) return true;
+    if (!U.voice || !U.voice.on || !U.voice.speaking) return false;
+    const T = timing(battle), i = Math.max(0, bPhase), next = i + 1 < battle.phases.length ? T.cum[i + 1] / T.total : 1;
+    return ps >= next - 0.004;
+  }
+
+  /* --- caméra libre : tourner, zoomer, se déplacer --- */
+  const camLayer = document.getElementById("camLayer"), camBtn = document.getElementById("camBtn"), camHint = document.getElementById("camHint");
+  let hintT = 0;
+  function homeCam() { return battle ? bcam(Math.max(0, bPhase)) : { x: X(view.at[0]), z: Z(view.at[1]), dist: view.dist, pitch: view.pitch, head: view.head }; }
+  function setFree(v, silent) {
+    free = !!v;
+    document.body.classList.toggle("cam-free", free);
+    if (camBtn) {
+      camBtn.setAttribute("aria-pressed", String(free));
+      camBtn.querySelector("span").textContent = free ? U.T().camBack : U.T().camFree;
+    }
+    if (free) {
+      fly = null;
+      if (camHint) { camHint.hidden = false; clearTimeout(hintT); hintT = setTimeout(() => { camHint.hidden = true; }, 4500); }
+    } else {
+      if (camHint) camHint.hidden = true;
+      if (!silent && view) { const to = homeCam(); fly = reduceMotion ? null : { from: { ...cam }, to, t0: performance.now(), dur: 1800, bump: 0 }; if (!fly) Object.assign(cam, to); }
+    }
+  }
+  if (camBtn) camBtn.addEventListener("click", () => setFree(!free));
+  const orbit = (dx, dy) => { cam.head -= dx * 0.28; cam.pitch = clamp(cam.pitch + dy * 0.22, 6, 86); };
+  const zoom = (k) => { cam.dist = clamp(cam.dist * k, 0.12, 2800); };
+  function pan(dx, dy) {
+    const kpx = (cam.dist * 2 * Math.tan((camera.fov * D2R) / 2)) / Math.max(200, size.H), h = cam.head * D2R;
+    const rx = Math.cos(h), rz = Math.sin(h), fx = Math.sin(h), fz = -Math.cos(h);
+    const up = 1 / Math.max(0.35, Math.sin(cam.pitch * D2R));
+    cam.x += (-rx * dx + fx * dy * up) * kpx; cam.z += (-rz * dx + fz * dy * up) * kpx;
+  }
+  const ptrs = new Map();
+  let pinch = null;
+  function onDown(e) {
+    if (!free) return;
+    e.preventDefault();
+    ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY, btn: e.button, shift: e.shiftKey });
+    if (e.target.setPointerCapture) try { e.target.setPointerCapture(e.pointerId); } catch (err) { /* rien */ }
+    fly = null;
+  }
+  function onMove(e) {
+    const pt = ptrs.get(e.pointerId);
+    if (!pt || !free) return;
+    const dx = e.clientX - pt.x, dy = e.clientY - pt.y;
+    if (ptrs.size === 1) {
+      if (pt.btn === 2 || pt.shift || e.ctrlKey) pan(dx, dy); else orbit(dx, dy);
+    } else if (ptrs.size === 2) {
+      const [a, b] = [...ptrs.values()];
+      const d0 = Math.hypot(a.x - b.x, a.y - b.y);
+      pt.x = e.clientX; pt.y = e.clientY;
+      const [c, d] = [...ptrs.values()];
+      const d1 = Math.hypot(c.x - d.x, c.y - d.y);
+      if (d0 > 0 && d1 > 0) zoom(d0 / d1);
+      pan(dx / 2, dy / 2);
+      return;
+    }
+    pt.x = e.clientX; pt.y = e.clientY;
+  }
+  const onUp = (e) => { ptrs.delete(e.pointerId); };
+  if (camLayer) {
+    camLayer.addEventListener("pointerdown", onDown);
+    camLayer.addEventListener("pointermove", onMove);
+    camLayer.addEventListener("pointerup", onUp);
+    camLayer.addEventListener("pointercancel", onUp);
+    camLayer.addEventListener("contextmenu", (e) => e.preventDefault());
+    camLayer.addEventListener("wheel", (e) => { e.preventDefault(); e.stopPropagation(); zoom(Math.exp((e.deltaMode === 1 ? e.deltaY * 30 : e.deltaY) * 0.0012)); }, { passive: false });
+  }
+  // à la souris, on peut aussi saisir la scène directement, hors de la fiche du chapitre
+  const story = document.getElementById("story");
+  if (story) story.addEventListener("pointerdown", (e) => {
+    if (e.pointerType !== "mouse" || e.button !== 0 || !chapter || free) return;
+    if (e.target.closest(".st-card, button, a, .st-intro-inner, .st-outro-inner, .st-period-inner")) return;
+    setFree(true);
+    ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY, btn: 0 });
+    const mv = (ev) => onMove(ev), up = (ev) => { onUp(ev); window.removeEventListener("pointermove", mv); window.removeEventListener("pointerup", up); };
+    window.addEventListener("pointermove", mv);
+    window.addEventListener("pointerup", up);
+  });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && free) setFree(false); });
+
+  /* --- l'ambiance sonore suit la scène --- */
+  let moodT = 0;
+  function soundMood(now) {
+    if (!U.sound || !U.sound.on || now - moodT < 600) return;
+    moodT = now;
+    const night = hour < 5.3 || hour > 19.2;
+    const st = battle ? battles.stats : null;
+    const sea = hAt(lonOf(cam.x), latOf(cam.z)) <= 0 || view.route === "abyssinia" ? 0.7 : 0;
+    const near = view.dist < 20;
+    U.sound.mood({
+      night, sea, crickets: night && near ? 0.8 : night ? 0.3 : 0, birds: !night && near && !battle ? 0.5 : 0,
+      wind: battle ? 0.35 : view.dist > 300 ? 0.55 : 0.45,
+      battle: st ? st.melee : 0, gallop: st ? st.gallop : 0, arrows: st ? st.arrows : 0, fire: st ? st.fires : 0, storm: st ? st.storm : 0,
+      bells: view.route && view.dist < 200 ? 0.5 : st ? st.march * 0.6 : 0, town: !night && near && !battle && view.marks && view.marks.length ? 0.4 : 0
+    });
+  }
   U.onLang.push(() => { if (chapter) { F = null; if (crowd) { F = U.formation(crowd.name, crowdSpace()); if (F) F.name = crowd.name; } renderHots(); renderPanel(); } });
-  U.stage3d = { handles, setChapter, render, overlay, duration, world: true };
+  U.onLang.push(() => { if (camBtn) camBtn.querySelector("span").textContent = free ? U.T().camBack : U.T().camFree; });
+  U.stage3d = { handles, setChapter, render, overlay, duration, hold, world: true };
   canvas.hidden = true;
   if (U.stageReady) U.stageReady();
 }

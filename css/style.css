@@ -206,19 +206,23 @@ h1 .pbuh, h2 .pbuh, h3 .pbuh { font-size: 0.6em; }
 @media (min-width: 900px) { .map-layout { grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); align-items: start; } }
 .map-frame { position: relative; border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; background: var(--sea); }
 .map-svg { display: block; width: 100%; height: auto; aspect-ratio: 600 / 760; max-height: 78vh; direction: ltr; touch-action: manipulation; }
-.map-land { fill: var(--land); stroke: var(--land-line); stroke-width: 0.8; stroke-linejoin: round; }
+.map-frame { background: #2a6584; }
+.map-relief { pointer-events: none; }
+.map-land { fill: none; stroke: rgba(255, 248, 230, 0.55); stroke-width: 0.7; stroke-linejoin: round; }
+:root[data-theme="dark"] .map-relief { filter: brightness(0.72) saturate(0.9); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .map-relief { filter: brightness(0.72) saturate(0.9); } }
 .map-grid { stroke: var(--ink); stroke-opacity: 0.06; stroke-width: 0.6; fill: none; }
-.map-region { fill: var(--ink-soft); font-family: "Marcellus", var(--f-body); letter-spacing: 0.18em; opacity: 0.6; }
+.map-region { fill: #4a3626; font-family: "Marcellus", var(--f-body); letter-spacing: 0.18em; opacity: 0.85; paint-order: stroke; stroke: rgba(250, 240, 220, 0.6); stroke-width: 2.5px; stroke-linejoin: round; }
 .map-region[data-ar] { letter-spacing: 0; font-family: var(--f-arabic-display); }
-.map-sea { fill: var(--accent); opacity: 0.55; font-style: italic; letter-spacing: 0.06em; }
-.map-route { fill: none; stroke: var(--ink-soft); stroke-opacity: 0.28; stroke-linecap: round; stroke-linejoin: round; cursor: pointer; }
+.map-sea { fill: #e6f4f4; opacity: 0.9; font-style: italic; letter-spacing: 0.06em; stroke: rgba(20, 60, 80, 0.5); }
+.map-route { fill: none; stroke: #3a2a1c; stroke-opacity: 0.4; stroke-linecap: round; stroke-linejoin: round; cursor: pointer; }
 .map-route.spiritual { stroke-dasharray: 2 6; }
 .map-route.active { stroke: var(--gold); stroke-opacity: 1; }
 .map-route-hit { fill: none; stroke: transparent; cursor: pointer; }
 .map-place circle { fill: var(--bg); stroke: var(--ink); cursor: pointer; }
 .map-place.major circle { fill: var(--gold); stroke: var(--bg); }
 .map-place.on circle { fill: var(--gold); }
-.map-place text { fill: var(--ink); font-family: var(--f-body); font-weight: 700; paint-order: stroke; stroke: var(--land); stroke-linejoin: round; pointer-events: none; }
+.map-place text { fill: #22170e; font-family: var(--f-body); font-weight: 700; paint-order: stroke; stroke: rgba(252, 244, 228, 0.92); stroke-linejoin: round; pointer-events: none; }
 .map-traveler { fill: var(--gold); stroke: var(--bg); }
 .map-zoom {
   position: absolute; bottom: 12px; inset-inline-end: 12px;

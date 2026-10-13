@@ -305,7 +305,7 @@ body.sheet-open { overflow: hidden; }
 body.story-off .world-ui, body.sheet-open .world-ui { display: none !important; }
 .world-tele {
   position: fixed; z-index: 30; top: calc(var(--topbar-h) + 12px + env(safe-area-inset-top, 0px)); inset-inline-end: 16px;
-  display: grid; gap: 2px; padding: 8px 12px; border-radius: 10px; pointer-events: none;
+  gap: 2px; padding: 8px 12px; border-radius: 10px; pointer-events: none;
   background: rgba(4, 6, 18, 0.45); border: 1px solid rgba(255, 255, 255, 0.1); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
   color: var(--st-soft); font-size: 0.78rem; line-height: 1.35; font-variant-numeric: tabular-nums; text-align: end;
 }
@@ -342,3 +342,83 @@ body.story-off .world-ui, body.sheet-open .world-ui { display: none !important; 
 }
 @media (prefers-reduced-motion: reduce) { .hot-ring { animation: none; } }
 body.story-off .discover { display: none !important; }
+
+/* ---------- Simulation d'une bataille ---------- */
+.sim-panel {
+  position: fixed; z-index: 31; bottom: calc(var(--hud-h) + 14px); inset-inline-end: 16px; width: min(460px, 40vw);
+  padding: 14px 16px 12px; border-radius: 14px; background: rgba(6, 9, 24, 0.82); border: 1px solid rgba(233, 196, 111, 0.32);
+  color: var(--st-ink); box-shadow: 0 16px 50px rgba(0, 0, 0, 0.4); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+}
+.sim-panel[hidden] { display: none !important; }
+.bt-step { margin: 0; color: var(--st-gold); font-size: 0.74rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; }
+:root[lang="ar"] .bt-step { letter-spacing: 0; }
+.bt-title { margin: 3px 0 6px; font-size: 1.15rem; color: #fff; }
+.bt-text { margin: 0; color: var(--st-soft); font-size: 0.92rem; line-height: 1.5; min-height: 4.5em; }
+.bt-row { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
+.bt-steps { display: flex; flex: 1; gap: 5px; }
+.bt-steps button { flex: 1; height: 22px; padding: 0; border: 0; background: none; cursor: pointer; position: relative; }
+.bt-steps button::before { content: ""; position: absolute; inset: 9px 0; border-radius: 2px; background: rgba(255, 255, 255, 0.18); }
+.bt-steps button i { position: absolute; top: 9px; bottom: 9px; inset-inline-start: 0; width: 0; border-radius: 2px; background: var(--st-gold); }
+.bt-steps button.done i { width: 100% !important; opacity: 0.6; }
+.bt-steps button:not(.on):not(.done) i { width: 0 !important; }
+.bt-steps button:hover::before, .bt-steps button:focus-visible::before { background: rgba(255, 255, 255, 0.4); }
+.bt-replay { width: 30px; height: 30px; border-color: var(--st-line); flex: none; }
+.bt-replay svg { width: 16px; height: 16px; }
+
+/* ---------- Le lieu en vrai ---------- */
+.place-photo {
+  position: fixed; z-index: 31; bottom: calc(var(--hud-h) + 14px); inset-inline-start: 16px; width: 176px; padding: 0; overflow: hidden;
+  border-radius: 12px; border: 1px solid rgba(233, 196, 111, 0.45); background: #0a0d1c; cursor: pointer; color: var(--st-ink); font: inherit;
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.45); animation: rise 0.4s ease;
+}
+.place-photo[hidden] { display: none; }
+.place-photo img { display: block; width: 100%; height: 110px; object-fit: cover; transition: transform 0.4s ease; }
+.place-photo:hover img, .place-photo:focus-visible img { transform: scale(1.06); }
+.pp-label { position: absolute; inset-inline: 0; bottom: 0; padding: 18px 10px 7px; font-size: 0.78rem; font-weight: 700; text-align: start;
+  background: linear-gradient(to top, rgba(4, 6, 18, 0.9), rgba(4, 6, 18, 0)); }
+.pp-label::before { content: "◉ "; color: var(--st-gold); }
+.pp-n:not(:empty) { position: absolute; top: 6px; inset-inline-end: 6px; min-width: 22px; padding: 1px 6px; border-radius: 999px; background: rgba(4, 6, 18, 0.75); font-size: 0.72rem; font-weight: 700; }
+.pp-n:not(:empty)::before { content: "▣ "; color: var(--st-gold); }
+body.story-off .place-photo, body.sheet-open .place-photo, body.photo-open .place-photo { display: none !important; }
+/* sur ordinateur, la fiche du chapitre occupe le côté gauche : la vignette passe au-dessus du panneau de simulation */
+@media (min-width: 800px) { body.battle-on .place-photo { inset-inline-start: auto; inset-inline-end: 16px; bottom: auto; top: calc(var(--topbar-h) + 132px); width: 150px; } body.battle-on .place-photo img { height: 92px; } }
+
+.dc-photo { display: block; position: relative; width: 100%; margin: 12px 0 0; padding: 0; overflow: hidden; border-radius: 10px; border: 1px solid var(--st-line); background: #000; cursor: pointer; color: var(--st-ink); font: inherit; }
+.dc-photo[hidden] { display: none; }
+.dc-photo img { display: block; width: 100%; height: 150px; object-fit: cover; }
+.dc-photo span { position: absolute; inset-inline: 0; bottom: 0; padding: 16px 10px 6px; font-size: 0.78rem; font-weight: 700; text-align: start; background: linear-gradient(to top, rgba(4, 6, 18, 0.9), rgba(4, 6, 18, 0)); }
+
+/* ---------- Visionneuse de photographies ---------- */
+.photobox { position: fixed; inset: 0; z-index: 120; display: flex; flex-direction: column; background: rgba(3, 4, 12, 0.985); color: var(--st-ink); }
+.photobox[hidden] { display: none; }
+.pb-head { display: flex; align-items: center; gap: 12px; padding: calc(10px + env(safe-area-inset-top, 0px)) 16px 10px; }
+.pb-head h2 { flex: 1; margin: 0; font-size: 1.05rem; color: #fff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pb-count { color: var(--st-soft); font-size: 0.85rem; font-variant-numeric: tabular-nums; }
+.pb-head .icon-btn { border-color: var(--st-line); color: var(--st-ink); }
+.pb-fig { position: relative; flex: 1; min-height: 0; margin: 0; display: flex; flex-direction: column; }
+.pb-fig img { flex: 1; min-height: 0; width: 100%; object-fit: contain; transition: opacity 0.3s ease; }
+.photobox.loading .pb-fig img { opacity: 0.25; }
+.pb-spin { position: absolute; left: 50%; top: 45%; width: 34px; height: 34px; margin: -17px; border-radius: 50%; border: 3px solid rgba(233, 196, 111, 0.25); border-top-color: var(--st-gold); animation: spin 0.9s linear infinite; opacity: 0; pointer-events: none; }
+.photobox.loading .pb-spin { opacity: 1; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.pb-nav { position: absolute; top: 45%; width: 46px; height: 46px; margin-top: -23px; background: rgba(4, 6, 18, 0.6); border-color: var(--st-line); color: #fff; }
+.pb-prev { inset-inline-start: 12px; } .pb-next { inset-inline-end: 12px; }
+:root[dir="rtl"] .pb-nav svg { transform: scaleX(-1); }
+.photobox.single .pb-nav { display: none; }
+.pb-fig figcaption { padding: 12px 18px calc(16px + env(safe-area-inset-bottom, 0px)); text-align: center; }
+#photoCap { margin: 0 auto; max-width: 760px; font-size: 1rem; line-height: 1.5; }
+.pb-credit { margin: 6px 0 0; color: var(--st-soft); font-size: 0.76rem; }
+.pb-credit a { color: var(--st-gold); }
+body.photo-open { overflow: hidden; }
+
+@media (max-width: 799px) {
+  .sim-panel { top: calc(var(--topbar-h) + 52px); bottom: auto; inset-inline: 10px; width: auto; padding: 10px 12px 8px; }
+  .bt-title { font-size: 1rem; margin: 2px 0 4px; }
+  .bt-text { font-size: 0.82rem; min-height: 0; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+  body.battle-on .world-tele, body.battle-on .place-photo { display: none !important; }
+  .place-photo { top: calc(var(--topbar-h) + 60px); bottom: auto; inset-inline-start: 10px; width: 104px; }
+  .place-photo img { height: 66px; }
+  .pp-label { font-size: 0.66rem; padding: 12px 6px 4px; }
+  .pb-nav { top: auto; bottom: 90px; }
+}
+@media (prefers-reduced-motion: reduce) { .pb-spin { animation: none; } .place-photo { animation: none; } }

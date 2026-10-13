@@ -26,7 +26,7 @@
     bahira: { at: [38.2, 26.8], dist: 1500, pitch: 48, head: 340, hour: 8, route: "syria", marks: ["mecca", "medina", "bosra"] },
     fudul: { at: P.kaaba, dist: 4, pitch: 26, head: 120, hour: 15, spin: 0.5, marks: ["kaaba"] },
     khadija: { at: [38.2, 26.8], dist: 1500, pitch: 40, head: 20, hour: 17.2, route: "syria", marks: ["mecca", "bosra"] },
-    kaaba: { at: P.kaaba, dist: 3.2, pitch: 30, head: 200, hour: 11, spin: 0.5, marks: ["kaaba"] },
+    kaaba: { at: P.kaaba, dist: 1.3, pitch: 26, head: 200, hour: 10.5, spin: 0.5, marks: ["kaaba"] },
     "p-mecca": { at: P.hira, dist: 9, pitch: 20, head: 60, hour: 22, spin: 0.4, marks: ["hira"] },
     revelation: { at: P.hira, dist: 3.4, pitch: 14, head: 75, hour: 1.5, spin: 0.3, beam: P.hira, iqra: true, marks: ["hira"] },
     public: { at: P.safa, dist: 2.6, pitch: 24, head: 300, hour: 12.5, spin: 0.5, marks: ["safa", "kaaba"] },
@@ -38,7 +38,7 @@
     aqaba: { at: P.mina, dist: 2.2, pitch: 28, head: 280, hour: 23, crowd: { name: "aqaba", at: P.mina, rot: 0 }, marks: ["mina"] },
     "p-medina": { at: [39.6, 22.9], dist: 520, pitch: 45, head: 350, hour: 22, marks: ["mecca", "medina"] },
     hijra: { at: P.thawr, dist: 38, pitch: 38, head: 345, route: "hijra", follow: true, cycle: true, marks: ["mecca", "thawr", "medina"] },
-    medina: { at: P.nabawi, dist: 7, pitch: 30, head: 0, hour: 7.5, spin: 0.4, marks: ["nabawi", "quba"] },
+    medina: { at: P.nabawi, dist: 3.6, pitch: 26, head: 20, hour: 7.5, spin: 0.4, marks: ["quba"] },
     qibla: { at: P.nabawi, dist: 1400, pitch: 52, head: 0, hour: 12, qibla: true, marks: ["medina", "jerusalem", "mecca"] },
     badr: { at: P.badr, dist: 2.6, pitch: 30, head: 0, hour: 7.8, crowd: { name: "badr", at: P.badr, rot: 0 }, marks: ["badr"] },
     uhud: { at: [39.6145, 24.5], dist: 3.2, pitch: 30, head: 350, hour: 7.4, crowd: { name: "uhud", at: [39.6145, 24.4985], rot: -90 }, marks: ["uhud", "rumat"] },
@@ -75,7 +75,7 @@
       fr: { t: "La maison de la naissance", d: "La tradition situe la maison où naquit le Prophète ﷺ à l'est de la Ka'ba, dans le quartier de Suq al-Layl. Une bibliothèque occupe aujourd'hui cet emplacement." },
       en: { t: "The house of his birth", d: "Tradition places the house where the Prophet ﷺ was born east of the Ka'ba, in the Suq al-Layl quarter. A library stands on the spot today." },
       ar: { t: "دار المولد", d: "تذكر الروايات أن الدار التي وُلد فيها النبي ﷺ كانت شرقي الكعبة في سوق الليل، ويقوم في موضعها اليوم مبنى مكتبة مكة المكرمة." } },
-    { ch: ["kaaba", "fudul"], at: P.kaaba,
+    { ch: ["kaaba", "fudul"], at: [39.8236, 21.4206],
       fr: { t: "Au fond de la vallée", d: "La Ka'ba se trouve au point le plus bas de la vallée de La Mecque, entourée de montagnes. Les pluies, rares mais violentes, y provoquaient des crues : l'une d'elles endommagea la Ka'ba avant sa reconstruction." },
       en: { t: "At the bottom of the valley", d: "The Ka'ba stands at the lowest point of the valley of Mecca, ringed by mountains. Rare but violent rains caused floods there: one of them damaged the Ka'ba before it was rebuilt." },
       ar: { t: "في بطن الوادي", d: "تقع الكعبة في أخفض موضع من وادي مكة بين الجبال، وكانت الأمطار النادرة الشديدة تُحدث السيول، وأحدها أصدع الكعبة قبل أن تعيد قريش بناءها." } },
@@ -164,6 +164,10 @@
       en: { t: "'A'isha's room", d: "'A'isha's room, where the Prophet ﷺ was buried, adjoined the mosque. Successive enlargements brought it inside the Prophet's Mosque, beneath the Green Dome." },
       ar: { t: "حجرة عائشة", d: "كانت حجرة عائشة التي دُفن فيها النبي ﷺ ملاصقة للمسجد، ثم أدخلتها التوسعات المتتالية في المسجد النبوي تحت القبة الخضراء." } }
   ];
+
+  // une photographie réelle de chaque découverte (voir js/photos.js)
+  ["mecca1910", "kaaba1880", "hira", "safa", "taif", "redsea", "aqsa", "thawr", "desert", "harra", "quba", "qiblatayn", "badr2", "rumat", "uhud",
+    "khandaq", "hudaybiyya", "khaybar", "mecca1910", "", "tabuk", "rahma", "dome"].forEach((k, i) => { if (k && discoveries[i]) discoveries[i].img = k; });
 
   // distances admises par les sources pour les itinéraires (km), pour le compteur
   const km = { hijra: 450, syria: 1300, taif: 90, badr: 150, khaybar: 150, tabuk: 700, mutah: 1100, abyssinia: 0 };

@@ -42,6 +42,10 @@ const I18N = (window.I18N = {
     nextChapter: "Chapitre suivant",
     watchFilm: "Regarder comme un film",
     discover: "Découverte",
+    pawn: { one: "1 pion = 1 personne", many: "1 pion = {n} personnes" },
+    simulation: "Simulation", phase: "Phase", replay: "Revoir depuis le début",
+    seePhotos: "Voir le lieu en vrai", placeToday: "Le lieu en vrai", photoBy: "Photo :", photoNone: "Photo indisponible pour le moment.",
+    photoPrev: "Photo précédente", photoNext: "Photo suivante",
     altitude: "Altitude",
     ground: "Sol",
     sea: "Mer",
@@ -123,7 +127,7 @@ const I18N = (window.I18N = {
     verseMeaning: "Sens approché",
     footerAbout: "Un projet libre pour faire connaître la Sira au plus grand nombre.",
     footerImages: "Par respect de la tradition islamique, aucune représentation du Prophète ﷺ ni de ses compagnons n'est utilisée : les illustrations évoquent les lieux, les paysages et l'art géométrique.",
-    footerSources: "Sources principales : Ibn Hisham, as-Sira an-Nabawiyya ; Ibn Sa'd, at-Tabaqat ; Safiur-Rahman al-Mubarakpuri, ar-Rahiq al-Makhtum. Les dates sont approximatives et certaines font l'objet de divergences entre savants. Relief : Terrain Tiles (Mapzen, AWS Open Data ; SRTM, GMTED2010, ETOPO1). Fond de carte : Natural Earth. 3D : Three.js.",
+    footerSources: "Sources principales : Ibn Hisham, as-Sira an-Nabawiyya ; Ibn Sa'd, at-Tabaqat ; Safiur-Rahman al-Mubarakpuri, ar-Rahiq al-Makhtum. Les dates sont approximatives et certaines font l'objet de divergences entre savants. Relief : Terrain Tiles (Mapzen, AWS Open Data ; SRTM, GMTED2010, ETOPO1). Fond de carte : Natural Earth. Photographies : Wikimedia Commons (auteur et licence sous chaque photo). 3D : Three.js.",
     salawat: "Que la paix et les bénédictions d'Allah soient sur lui."
   },
 
@@ -169,6 +173,10 @@ const I18N = (window.I18N = {
     nextChapter: "Next chapter",
     watchFilm: "Watch it like a film",
     discover: "Discovery",
+    pawn: { one: "1 piece = 1 person", many: "1 piece = {n} people" },
+    simulation: "Simulation", phase: "Phase", replay: "Replay from the start",
+    seePhotos: "See the real place", placeToday: "The real place", photoBy: "Photo:", photoNone: "Photo unavailable for now.",
+    photoPrev: "Previous photo", photoNext: "Next photo",
     altitude: "Altitude",
     ground: "Ground",
     sea: "Sea",
@@ -250,7 +258,7 @@ const I18N = (window.I18N = {
     verseMeaning: "Meaning",
     footerAbout: "An open project to make the Sira known to as many people as possible.",
     footerImages: "Out of respect for Islamic tradition, the Prophet ﷺ and his companions are never depicted: the illustrations evoke places, landscapes and geometric art.",
-    footerSources: "Main sources: Ibn Hisham, as-Sira an-Nabawiyya; Ibn Sa'd, at-Tabaqat; Safiur-Rahman al-Mubarakpuri, ar-Raheeq al-Makhtum (The Sealed Nectar). Dates are approximate and some are debated among scholars. Relief: Terrain Tiles (Mapzen, AWS Open Data; SRTM, GMTED2010, ETOPO1). Base map: Natural Earth. 3D: Three.js.",
+    footerSources: "Main sources: Ibn Hisham, as-Sira an-Nabawiyya; Ibn Sa'd, at-Tabaqat; Safiur-Rahman al-Mubarakpuri, ar-Raheeq al-Makhtum (The Sealed Nectar). Dates are approximate and some are debated among scholars. Relief: Terrain Tiles (Mapzen, AWS Open Data; SRTM, GMTED2010, ETOPO1). Base map: Natural Earth. Photographs: Wikimedia Commons (author and licence under each photo). 3D: Three.js.",
     salawat: "May the peace and blessings of Allah be upon him."
   },
 
@@ -296,6 +304,10 @@ const I18N = (window.I18N = {
     nextChapter: "الفصل التالي",
     watchFilm: "شاهدها كفيلم",
     discover: "اكتشاف",
+    pawn: { one: "القطعة = شخص واحد", many: "القطعة = {n} أشخاص" },
+    simulation: "محاكاة", phase: "المرحلة", replay: "إعادة من البداية",
+    seePhotos: "شاهد المكان حقيقةً", placeToday: "المكان حقيقةً", photoBy: "الصورة:", photoNone: "الصورة غير متاحة حاليًا.",
+    photoPrev: "الصورة السابقة", photoNext: "الصورة التالية",
     altitude: "الارتفاع",
     ground: "الأرض",
     sea: "البحر",
@@ -377,7 +389,7 @@ const I18N = (window.I18N = {
     verseMeaning: "المعنى",
     footerAbout: "مشروع مفتوح للتعريف بالسيرة النبوية لأكبر عدد من الناس.",
     footerImages: "احترامًا للتقاليد الإسلامية لا يُصوَّر النبي ﷺ ولا أصحابه: الرسوم تستحضر الأماكن والمناظر والزخرفة الهندسية.",
-    footerSources: "أهم المصادر: سيرة ابن هشام، طبقات ابن سعد، الرحيق المختوم لصفي الرحمن المباركفوري. التواريخ تقريبية وبعضها محل خلاف بين العلماء. التضاريس: Terrain Tiles ‏(Mapzen، AWS Open Data؛ SRTM، GMTED2010، ETOPO1). الخريطة: Natural Earth. الأبعاد الثلاثية: Three.js.",
+    footerSources: "أهم المصادر: سيرة ابن هشام، طبقات ابن سعد، الرحيق المختوم لصفي الرحمن المباركفوري. التواريخ تقريبية وبعضها محل خلاف بين العلماء. التضاريس: Terrain Tiles ‏(Mapzen، AWS Open Data؛ SRTM، GMTED2010، ETOPO1). الخريطة: Natural Earth. الصور: Wikimedia Commons (المصوّر والترخيص تحت كل صورة). الأبعاد الثلاثية: Three.js.",
     salawat: "صلى الله عليه وسلم."
   }
 });

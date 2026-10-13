@@ -5,6 +5,8 @@
    Sans WebGL, ou si les données ne se chargent pas, le voyage garde sa version 2D. */
 import * as THREE from "./vendor/three.module.min.js";
 import { Sky } from "./vendor/Sky.js";
+import { createDecor } from "./world-decor.js";
+import { createBattles } from "./world-battles.js";
 
 const U = window.Sira;
 const S = window.SIRA;
@@ -268,8 +270,18 @@ function setup({ region, locals, hAt, yAt }) {
     setTimeout(buildNext, 30);
   };
   setTimeout(buildNext, 30);
+  // décors (arbres, villes, monuments), grain du sol, batailles
+  const decor = createDecor({ scene, X, Z, Y, hAt, isMobile, WD, renderer });
+  decor.patchGround(groundMat);
+  const benv = { scene, X, Z, yAt, isMobile, U, camTarget: [0, 0] };
+  const battles = createBattles(benv, decor);
+  // sur un écran étroit, la caméra recule un peu pour garder les deux armées dans le cadre
+  const bcam = (ph) => { const c = battles.camFor(ph); if (mobile()) c.dist *= 1.45; return c; };
+  const localG = new THREE.Group();
+  scene.add(localG);
   // la mer suit la caméra, à la taille de la vue : un plan géant fausse la profondeur
   const sea = new THREE.Mesh(new THREE.PlaneGeometry(1, 1, 24, 24), new THREE.MeshStandardMaterial({ color: 0x16506d, roughness: 0.12, metalness: 0, transparent: true, opacity: 0.9, polygonOffset: true, polygonOffsetFactor: 2, polygonOffsetUnits: 2 }));
+  decor.patchSea(sea.material);
   sea.rotation.x = -Math.PI / 2;
   sea.position.y = 0.002;
   scene.add(sea);
@@ -296,8 +308,9 @@ function setup({ region, locals, hAt, yAt }) {
 
   /* --- foules --- */
   const MAXD = 10000;
-  const crowdGeo = new THREE.IcosahedronGeometry(1, 1);
-  const crowdMat = new THREE.MeshStandardMaterial({ roughness: 0.55, emissive: 0x231a08, emissiveIntensity: 0.5 });
+  const crowdGeo = decor.G.pawn;
+  const crowdMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.55, emissive: 0x231a08, emissiveIntensity: 0.35, flatShading: true });
+  crowdMat.onBeforeCompile = (sh) => { sh.fragmentShader = sh.fragmentShader.replace("#include <emissivemap_fragment>", "#include <emissivemap_fragment>\ntotalEmissiveRadiance += diffuseColor.rgb * 0.3;"); };
   const dots = new THREE.InstancedMesh(crowdGeo, crowdMat, MAXD);
   dots.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
   dots.frustumCulled = false;
@@ -319,7 +332,8 @@ function setup({ region, locals, hAt, yAt }) {
   /* --- état du chapitre --- */
   let chapter = null, view = null, t0 = performance.now();
   const cam = { x: X(41), z: Z(23), dist: 2300, pitch: 55, head: 0 };
-  let fly = null, hour = 23, hourFrom = 23, hourTo = 23, envHour = -99;
+  let fly = null, hour = 23, hourFrom = 23, hourTo = 23, envHour = -99, hourT0 = performance.now();
+  let battle = null, bPhase = -1, lastP = 0;
   const marks = [], hots = [];
   let routeObj = null, arcs = [], beam = null, travel = null;
 
@@ -361,22 +375,33 @@ function setup({ region, locals, hAt, yAt }) {
   function setChapter(c) {
     chapter = c;
     canvas.hidden = !c;
-    if (!c) return;
+    if (!c) { battle = null; battles.stop(); renderPanel(); return; }
     view = WD.views[c.id] || WD.views.intro;
     t0 = performance.now();
     closeCard();
+    // une bataille (ou une scène simulée) prend la main sur la caméra et l'heure
+    battle = battles.has(c.id) && battles.start(c.id) ? battles.def(c.id) : null;
+    if (!battle) battles.stop();
+    view.battle = !!battle;
+    bPhase = 0;
+    renderPanel();
     // vol de la caméra vers le nouveau lieu
-    const to = { x: X(view.at[0]), z: Z(view.at[1]), dist: view.dist, pitch: view.pitch, head: view.head };
+    const to = battle ? bcam(0) : { x: X(view.at[0]), z: Z(view.at[1]), dist: view.dist, pitch: view.pitch, head: view.head };
     const travelKm = Math.hypot(to.x - cam.x, to.z - cam.z);
     const bump = Math.max(0, travelKm * 0.9 - (cam.dist + to.dist) / 2);
     fly = reduceMotion ? null : { from: { ...cam }, to, t0, dur: 1600 + Math.min(3200, Math.sqrt(travelKm) * 90), bump };
     if (!fly) Object.assign(cam, to);
-    hourFrom = hour; hourTo = view.cycle ? 22 : view.hour;
+    hourFrom = hour; hourTo = battle ? battle.phases[0].hour : view.cycle ? 22 : view.hour; hourT0 = performance.now();
     // décor du chapitre
     disposeGroup();
+    while (localG.children.length) { const o = localG.children.pop(); if (o.dispose) o.dispose(); }
+    decor.local(view, c.id, localG);
+    const nightNow = hourTo < 6 || hourTo > 19;
+    decor.setBirds(view, nightNow);
+    decor.setSmoke(view);
     marks.length = 0; arcs = []; beam = null; routeObj = null; travel = null;
     const scale = view.dist;
-    for (const id of view.marks || []) {
+    for (const id of battle ? [] : view.marks || []) {
       const at = id === "mecca" ? WD.P.kaaba : id === "medina" ? WD.P.nabawi : P(id);
       if (!at) continue;
       const g = glow(scale * 0.035, 0xffd98a, 0.95);
@@ -425,22 +450,9 @@ function setup({ region, locals, hAt, yAt }) {
       const g = glow(0.6, 0xffe7a8); g.position.set(X(b[0]), gy + 0.02, Z(b[1])); g.userData.cave = true;
       fxGroup.add(beam, g);
     }
-    if (view.crowd) {
+    if (view.crowd && !battle) {
       crowd = view.crowd;
       if (crowd.name !== (F && F.name)) { F = U.formation(crowd.name, crowdSpace()); if (F) F.name = crowd.name; fT0 = performance.now(); }
-      if (F && F.trench) {
-        const [x1, z1] = toWorld(crowdSpace().X(0.47), -CD * 0.6), [x2, z2] = toWorld(crowdSpace().X(0.47), CD * 0.6);
-        const len = Math.hypot(x2 - x1, z2 - z1);
-        const tr = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.008, len), new THREE.MeshStandardMaterial({ color: 0x1a1612, roughness: 1 }));
-        tr.position.set((x1 + x2) / 2, yAt((x1 + x2) / 2, (z1 + z2) / 2) + 0.002, (z1 + z2) / 2);
-        tr.rotation.y = Math.atan2(x2 - x1, z2 - z1);
-        fxGroup.add(tr);
-      }
-      if (F && F.kaaba) {
-        const k = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.035, 0.03), new THREE.MeshStandardMaterial({ color: 0x0d0e14, roughness: 0.7 }));
-        k.position.set(X(WD.P.kaaba[0]), Y(hAt(WD.P.kaaba[0], WD.P.kaaba[1])) + 0.0175, Z(WD.P.kaaba[1]));
-        fxGroup.add(k);
-      }
     } else { crowd = null; F = null; }
     // découvertes de ce chapitre
     renderHots();
@@ -482,6 +494,18 @@ function setup({ region, locals, hAt, yAt }) {
       (h > 0 ? `<span>${T.altitude} ≈ ${U.num(Math.round(h / 10) * 10)} m</span>` : "") +
       (near[0] > 0.3 ? `<span>${U.num(Math.round(near[0] * 10) / 10)} km ${near[1]}</span>` : "") +
       `<span>${lat}° N · ${lon}° E</span>`;
+    // la photographie du lieu
+    const ph = card.querySelector(".dc-photo"), pc = d.img && U.photos && U.photos.get(d.img);
+    ph.hidden = true;
+    ph.onclick = null;
+    if (pc) {
+      U.photos.load([pc.file]).then((found) => {
+        if (!found.length || card.hidden || card.querySelector("h3").textContent !== U.tr(d).t) return;
+        ph.querySelector("img").src = found[0].src;
+        ph.hidden = false;
+        ph.onclick = () => U.photos.open([pc], 0, ph, U.tr(d).t);
+      });
+    }
     card.hidden = false;
     cardOpener = opener;
     card.querySelector(".dc-close").focus({ preventScroll: true });
@@ -569,12 +593,30 @@ function setup({ region, locals, hAt, yAt }) {
     });
     if (beam && view.isra) { const w = smooth(clamp((p - 0.5) / 0.35)); beam.scale.y = Math.max(0.001, w * 2600); beam.position.y = beam.scale.y / 2; }
     if (beam && view.beam) beam.material.opacity = 0.5 * smooth(clamp(p * 1.6));
+    // la bataille : positions, phases, caméra et heure de chaque phase
+    lastP = p;
+    const pxScale = (H * renderer.getPixelRatio()) / (2 * Math.tan((camera.fov * D2R) / 2));
+    if (battle) {
+      benv.camTarget[0] = cam.x; benv.camTarget[1] = cam.z;
+      const ph = battles.update(dt, t, p, pxScale);
+      if (ph !== bPhase && ph >= 0) {
+        bPhase = ph;
+        const to = bcam(ph);
+        const travelKm = Math.hypot(to.x - cam.x, to.z - cam.z);
+        fly = reduceMotion ? null : { from: { ...cam }, to, t0: now, dur: 2200 + Math.min(2600, Math.sqrt(travelKm) * 160), bump: Math.max(0, travelKm * 0.6 - (cam.dist + to.dist) / 2) };
+        if (!fly) Object.assign(cam, to);
+        hourFrom = hour; hourTo = battle.phases[ph].hour; hourT0 = now;
+        renderPanel();
+      }
+      updatePanel(p);
+    }
     // l'heure : transition douce, ou la nuit qui laisse place à l'aube pendant l'Hégire
-    const since = (now - t0) / 1000;
+    const since = (now - hourT0) / 1000;
     if (view.cycle) hour = lerp(22, 30.5, smooth(clamp(p))) % 24;
     else hour = lerp(hourFrom, hourTo + (Math.abs(hourTo - hourFrom) > 12 ? (hourTo > hourFrom ? -24 : 24) : 0), smooth(clamp(since / 2.5)));
     hour = (hour + 24) % 24;
     applyHour(hour);
+    decor.update(dt, t, cam, hour, pxScale);
     // la foule
     if (F && crowd) renderCrowd(dt, t, p);
     else dots.count = 0;
@@ -614,7 +656,7 @@ function setup({ region, locals, hAt, yAt }) {
     const o = [0, 0, 1];
     const since = (performance.now() - fT0) / 1000;
     const kk = reduceMotion ? 1 : 1 - Math.exp(-dt * 3);
-    const r = 0.0062; // un point grossi pour rester lisible depuis la caméra
+    const r = 0.0042; // un pion grossi pour rester lisible depuis la caméra
     let last = 0;
     for (let i = 0; i < MAXD; i++) {
       let ta = 0;
@@ -630,7 +672,7 @@ function setup({ region, locals, hAt, yAt }) {
       DP.a[i] += (ta - DP.a[i]) * (reduceMotion ? 1 : Math.min(1, dt * 3));
       const s = Math.max(0.00001, DP.a[i]) * r;
       const [wx, wz] = toWorld(DP.x[i], DP.z[i]);
-      v3.set(wx, yAt(wx, wz) + s, wz);
+      v3.set(wx, Math.max(0, yAt(wx, wz)), wz);
       s3.set(s, s, s);
       m4.compose(v3, q4, s3);
       dots.setMatrixAt(i, m4);
@@ -701,13 +743,21 @@ function setup({ region, locals, hAt, yAt }) {
       const [x, y] = toScreen(v);
       label(x, y - 40, "", "Qibla → " + (sw < 0.5 ? T.qiblaNorth : T.qiblaSouth), "center");
     }
+    if (battle) {
+      for (const [x3, y3, z3, big, small] of battles.labels(lastP)) {
+        const [x, y, ok] = toScreen(new THREE.Vector3(x3, y3, z3));
+        if (ok) label(x, y, big, small, "center");
+      }
+      const sc = battles.scale;
+      legend(sc === 1 ? T.pawn.one : T.pawn.many.replace("{n}", U.num(sc)));
+    }
     if (F && crowd) {
       for (const [lx, lz, big, small] of F.labels()) {
         const [wx, wz] = toWorld(lx, lz);
         const [x, y, ok] = toScreen(new THREE.Vector3(wx, yAt(wx, wz) + 0.05, wz));
         if (ok) label(x, y, big, small, "center");
       }
-      if (F.scale) legend(F.scale === 1 ? T.crowd.one : T.crowd.many.replace("{n}", U.num(Math.round(F.scale))));
+      if (F.scale) legend(F.scale === 1 ? T.pawn.one : T.pawn.many.replace("{n}", U.num(Math.round(F.scale))));
     }
     if (view.iqra) {
       const p = clamp((performance.now() - t0) / ((chapter.len || 1.25) * 4000));
@@ -728,9 +778,41 @@ function setup({ region, locals, hAt, yAt }) {
     }
   }
 
+  /* --- le panneau de la simulation : phases, texte, accès direct --- */
+  const panel = document.getElementById("battlePanel");
+  function renderPanel() {
+    if (!panel) return;
+    document.body.classList.toggle("battle-on", !!battle);
+    panel.hidden = !battle;
+    if (!battle) return;
+    const T = U.T(), ph = battle.phases[Math.max(0, bPhase)], n = battle.phases.length;
+    panel.querySelector(".bt-step").textContent = `${T.simulation} · ${T.phase} ${U.num(Math.max(0, bPhase) + 1)}/${U.num(n)}`;
+    panel.querySelector(".bt-title").textContent = U.tr(ph).t;
+    panel.querySelector(".bt-text").textContent = U.tr(ph).d;
+    const steps = panel.querySelector(".bt-steps");
+    if (steps.children.length !== n || steps.dataset.ch !== chapter.id || steps.dataset.lang !== document.documentElement.lang) {
+      steps.dataset.ch = chapter.id; steps.dataset.lang = document.documentElement.lang;
+      steps.innerHTML = battle.phases.map((x, i) => `<button type="button" data-ph="${i}" aria-label="${T.phase} ${U.num(i + 1)} : ${U.tr(x).t.replace(/"/g, "&quot;")}"><i></i></button>`).join("");
+    }
+    [...steps.children].forEach((b, i) => { b.classList.toggle("done", i < bPhase); b.classList.toggle("on", i === bPhase); b.setAttribute("aria-current", i === bPhase ? "step" : "false"); });
+  }
+  function updatePanel(p) {
+    if (!panel || !battle) return;
+    const ph = battle.phases, i = Math.max(0, bPhase), a = ph[i].p, b = i + 1 < ph.length ? ph[i + 1].p : 1;
+    const bar = panel.querySelector(`.bt-steps [data-ph="${i}"] i`);
+    if (bar) bar.style.width = (clamp((p - a) / (b - a)) * 100).toFixed(1) + "%";
+  }
+  if (panel) panel.addEventListener("click", (ev) => {
+    const b = ev.target.closest("[data-ph]");
+    if (b && battle && U.seekChapter) { const ph = battle.phases[+b.dataset.ph]; U.seekChapter(ph.p + 0.002); }
+    if (ev.target.closest(".bt-replay") && U.seekChapter) U.seekChapter(0);
+  });
+
   function handles(c) { return !!c; }
-  U.onLang.push(() => { if (chapter) { F = null; if (crowd) { F = U.formation(crowd.name, crowdSpace()); if (F) F.name = crowd.name; } renderHots(); } });
-  U.stage3d = { handles, setChapter, render, overlay, world: true };
+  // la durée d'un chapitre de bataille : le temps de la simulation
+  const duration = (c) => (c && battles.has(c.id) ? battles.def(c.id).dur * 1000 : 0);
+  U.onLang.push(() => { if (chapter) { F = null; if (crowd) { F = U.formation(crowd.name, crowdSpace()); if (F) F.name = crowd.name; } renderHots(); renderPanel(); } });
+  U.stage3d = { handles, setChapter, render, overlay, duration, world: true };
   canvas.hidden = true;
   if (U.stageReady) U.stageReady();
 }

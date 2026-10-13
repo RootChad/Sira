@@ -13,8 +13,10 @@ La page s'ouvre sur un **voyage immersif**, pensé comme un film : **un chapitre
 - **Cartes animées** : le tracé de l'Hégire se dessine au défilement, avec le compteur de kilomètres ; les lettres aux souverains partent de Médine vers Jérusalem, Ctésiphon, Aksoum, Alexandrie, Bahreïn et Bosra.
 - **Un monde en 3D, sur le vrai relief** (Three.js) : l'Arabie est reconstruite à partir des altitudes satellites (SRTM). La Ka'ba au fond de sa vallée, le Jabal an-Nour, les harra de lave autour de Médine, les monts de Ta'if à 1 600 m, la mer Rouge… La caméra vole d'un lieu à l'autre à chaque chapitre.
 - **Le ciel et l'heure** : un ciel physique avec soleil, lune et étoiles. Chaque événement a son heure : la nuit de la révélation à Hira, l'aube de Badr, le coucher du soleil sur La Mecque. Pendant l'Hégire, les nuits et les jours passent, avec un compteur des jours de voyage.
-- **Simulations** : les foules (313 à Badr face à 1 000, les archers d'Uhud, le fossé, 10 000 à la conquête, les pèlerins à 'Arafat) sont posées sur le vrai terrain ; les itinéraires épousent le relief ; les lettres aux souverains et les délégations s'élèvent en arcs.
+- **Batailles simulées, phase par phase** : Badr, Uhud, le Fossé, Hunayn, la conquête de La Mecque, ainsi qu'al-Hudaybiyya et 'Arafat. Les armées manœuvrent sur le vrai terrain : rangs, duels, charges, cavalerie qui contourne la colline d'Uhud, fossé creusé d'ouest en est, feux des camps, vent qui emporte les tentes, flèches, poussière, idoles qui tombent. Un panneau explique chaque phase, avec un accès direct à chacune. Les combattants sont des **pions** (aucune figure humaine), accompagnés de chevaux, de chameaux et de troupeaux ; une légende indique combien de personnes vaut un pion.
+- **Décors** : la vieille ville de La Mecque serrée autour de la Ka'ba, la mosquée du Prophète de l'an 1 (murs de terre, auvent de palmes), les palmeraies de Médine, Quba', Khaybar et ses forts, les vergers de Ta'if, des acacias dans les vallées, des rochers, des oiseaux, la fumée des foyers, les nuages, la mer animée.
 - **Découvertes** : des points lumineux sur la scène s'ouvrent en fiches (23 au total) : pourquoi le fossé fut creusé au nord, le puits de Badr, la colline des archers, la direction de la qibla… avec l'altitude réelle et la distance à la Ka'ba ou à la mosquée du Prophète.
+- **Les lieux en vrai** : des photographies réelles de chaque lieu (Wikimedia Commons, licences libres), dans une vignette sur la scène, dans les fiches découverte et dans une visionneuse. Auteur et licence sont affichés sous chaque photo. Aucune ne représente de personne.
 - **Télémétrie** : heure du jour, coordonnées, altitude du sol et kilomètres parcourus s'affichent en direct.
 - Sans WebGL (ou en ouvrant le fichier sans serveur), le site reprend automatiquement la version 2D illustrée.
 - **Carte sans quitter le récit** : « Voir sur la carte » ouvre une carte par-dessus le chapitre, cadrée sur l'itinéraire ou le lieu ; on la ferme et on retrouve sa place.
@@ -66,6 +68,10 @@ js/data.js          contenu trilingue : événements, lieux, itinéraires, chiff
 js/i18n.js          textes de l'interface (fr / en / ar)
 js/app.js           exploration (carte, chiffres, famille, quiz) et langue
 js/world.js         le monde 3D du voyage : relief, ciel, caméra, foules, découvertes (module ES)
+js/world-decor.js   modèles et décors : palmiers, maisons, Ka'ba, mosquées, forts, tentes, grain du sol, mer, nuages, oiseaux
+js/world-battles.js le moteur des batailles : formations, pertes, flèches, poussière, feux, tempête
+js/battles-data.js  le déroulé de chaque bataille : unités, positions, phases et textes (fr / en / ar)
+js/photos.js        photographies des lieux (Wikimedia Commons) et visionneuse
 js/world-data.js    réglages de chaque plan (lieu, heure, cadrage) et fiches « découverte » (fr / en / ar)
 js/vendor/          Three.js 0.169 et son ciel (Sky.js), licence MIT, fournis avec le site
 js/map-data.js      contour des terres, lieux et itinéraires projetés (généré)
@@ -109,6 +115,8 @@ npm install
 npm run terrain   # télécharge les tuiles (curl) et écrit data/terrain/*.png et index.json
 ```
 
+Pour modifier une bataille (positions, effectifs, phases, textes), éditer `js/battles-data.js` : les positions sont en mètres depuis le point d'origine (est, nord), et chaque unité suit une liste de clés `[progression, est, nord, cap, formation]`.
+
 Chaque PNG garde l'altitude en mètres + 1000 sur 16 bits (rouge = octet fort, vert = octet faible). Pour placer la caméra d'un chapitre ou ajouter une découverte, éditer `js/world-data.js` (coordonnées en longitude/latitude).
 
 ## Sources
@@ -119,5 +127,6 @@ Chaque PNG garde l'altitude en mètres + 1000 sur 16 bits (rouge = octet fort, v
 - Fond de carte : [Natural Earth](https://www.naturalearthdata.com/) (domaine public), via `world-atlas`
 - Relief : [Terrain Tiles](https://registry.opendata.aws/terrain-tiles/) (Mapzen / AWS Open Data), compilées à partir de SRTM, GMTED2010 et ETOPO1 (USGS, NOAA, NASA)
 - Moteur 3D : [Three.js](https://threejs.org/) (licence MIT)
+- Photographies : [Wikimedia Commons](https://commons.wikimedia.org/) ; l'auteur et la licence de chaque photo sont demandés à Commons et affichés avec elle
 
 صلى الله عليه وسلم

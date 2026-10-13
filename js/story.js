@@ -419,6 +419,7 @@
           <div class="st-actions">
             <button type="button" class="st-link" data-more aria-expanded="${isOpen}">${esc(isOpen ? T.readLess : T.readMore)}</button>
             ${e.route || e.place ? `<button type="button" class="st-link" data-map="${e.id}" aria-haspopup="dialog">${esc(T.seeOnMap)}</button>` : ""}
+            ${U.photos && U.photos.has(c.id) ? `<button type="button" class="st-link" data-photos="${c.id}" data-label="${esc(t.title)}" aria-haspopup="dialog">${esc(T.seePhotos)}</button>` : ""}
           </div>
         </article></section>`;
     }).join("");
@@ -623,7 +624,8 @@
   }
   // la scène s'anime d'elle-même : la progression suit le temps passé sur le chapitre
   let chapterT0 = 0;
-  const chapterDur = (c) => (c.type === "event" ? (c.len || 1.25) * 4000 : 4000);
+  // un chapitre de bataille dure le temps de sa simulation
+  const chapterDur = (c) => (gl && U.stage3d && U.stage3d.duration && U.stage3d.duration(c)) || (c.type === "event" ? (c.len || 1.25) * 4000 : 4000);
   const readTime = (c) => {
     if (c.type === "intro") return 800;
     if (c.type !== "event") return 6500;
@@ -681,6 +683,7 @@
       $("#hudTitle").textContent = "";
     } else hud.classList.remove("on");
     $$("#drawerList [data-jump]").forEach((b) => b.classList.toggle("current", b.dataset.jump === c.id));
+    if (U.photos) U.photos.setChapter(c.id, c.type === "event" ? U.tr(eventById[c.ev]).title : c.type === "period" ? U.tr(S.periods.find((x) => x.id === c.period)) : "");
     Sound.scene(c);
   }
   /* --- lecture automatique et navigation --- */
@@ -1395,5 +1398,7 @@
   U.stageReady = () => { if (activeIndex >= 0) { const i = activeIndex; activeIndex = -1; setActive(i); } };
   U.crowdColors = () => COLORS.slice();
   U.openChapter = (id) => goTo(id, true);
+  // revenir à un moment précis de la scène (phases d'une bataille)
+  U.seekChapter = (p) => { const c = CHAPTERS[activeIndex]; if (c) { chapterT0 = performance.now() - clamp(p) * chapterDur(c); progress = clamp(p); } };
   U.storyInit = init;
 })();

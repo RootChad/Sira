@@ -162,6 +162,25 @@
   </div>
 </div>
 
+<!-- Carte d'un événement, par-dessus le voyage -->
+<div class="mapsheet" id="mapSheet" hidden>
+  <div class="mapsheet-panel" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
+    <div class="mapsheet-head">
+      <div>
+        <p class="mapsheet-date" id="sheetDate"></p>
+        <h2 id="sheetTitle"></h2>
+      </div>
+      <button type="button" class="icon-btn" id="sheetClose" data-i18n-aria="close" aria-label="Fermer"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    </div>
+    <svg class="mapsheet-map" id="sheetMap" viewBox="0 0 600 760" preserveAspectRatio="xMidYMid slice" aria-hidden="true"></svg>
+    <p class="mapsheet-info" id="sheetInfo"></p>
+    <div class="mapsheet-actions">
+      <button type="button" class="st-btn st-btn-gold" id="sheetBack" data-i18n="backToJourney">Revenir au voyage</button>
+      <button type="button" class="st-btn st-btn-line" id="sheetFull" data-i18n="openFullMap">Ouvrir la carte complète</button>
+    </div>
+  </div>
+</div>
+
 <!-- Liste des chapitres -->
 <div class="drawer" id="drawer" hidden>
   <div class="drawer-panel" role="dialog" aria-modal="true" aria-labelledby="drawerTitle">

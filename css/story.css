@@ -232,3 +232,38 @@ body.drawer-open { overflow: hidden; }
 @media (prefers-reduced-motion: reduce) {
   .scene, .st-card, .brick, #stageMap { transition: none !important; }
 }
+
+/* ---------- Carte d'un événement, par-dessus le voyage ---------- */
+.mapsheet { position: fixed; inset: 0; z-index: 65; display: grid; place-items: center; padding: 16px; background: rgba(2, 3, 10, 0.55); animation: fadeIn 0.25s ease; }
+@keyframes fadeIn { from { opacity: 0; } }
+.mapsheet-panel {
+  width: min(760px, 100%); max-height: calc(100vh - 32px); max-height: calc(100dvh - 32px); overflow-y: auto;
+  display: grid; gap: 12px; padding: 18px; border-radius: 18px;
+  background: #0b1024; color: var(--st-ink); border: 1px solid var(--st-line); box-shadow: 0 30px 80px rgba(0, 0, 0, 0.5);
+  animation: rise 0.35s ease;
+}
+@keyframes rise { from { transform: translateY(18px); opacity: 0; } }
+.mapsheet-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.mapsheet-head .icon-btn { border-color: var(--st-line); flex-shrink: 0; }
+.mapsheet-date { margin: 0; color: var(--st-gold); font-size: 0.9rem; font-variant-numeric: tabular-nums; }
+.mapsheet-head h2 { font-size: clamp(1.35rem, 1.1rem + 1vw, 1.9rem); color: #fff; }
+.mapsheet-map { display: block; width: 100%; height: min(56vh, 460px); border-radius: 12px; background: #091330; direction: ltr; }
+.mapsheet-info { margin: 0; color: var(--st-soft); line-height: 1.55; max-width: 62ch; }
+.mapsheet-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.ms-sea { fill: #091330; }
+.ms-land { fill: #1d2852; stroke: #c19a4c; stroke-opacity: 0.6; stroke-linejoin: round; }
+.ms-other { fill: none; stroke: #f3eee0; stroke-opacity: 0.14; stroke-linecap: round; }
+.ms-route { fill: none; stroke: #e9c46f; stroke-linecap: round; stroke-linejoin: round; filter: drop-shadow(0 0 3px rgba(255, 217, 138, 0.7)); }
+.ms-route.spiritual { stroke-dasharray: 0.5 6; }
+.ms-traveler { fill: #fff3d0; filter: drop-shadow(0 0 4px #ffd98a); }
+.ms-place circle { fill: #e9c46f; stroke: #091330; }
+.ms-place text { fill: #f3eee0; font-family: "Alegreya Sans", "Noto Naskh Arabic", sans-serif; font-weight: 700; paint-order: stroke; stroke: #091330; stroke-linejoin: round; }
+.ms-pulse { fill: none; stroke: #e9c46f; transform-box: fill-box; transform-origin: center; animation: pulse 1.8s ease-out infinite; }
+@keyframes pulse { from { transform: scale(0.3); opacity: 1; } to { transform: scale(1.4); opacity: 0; } }
+body.sheet-open { overflow: hidden; }
+@media (max-width: 600px) {
+  .mapsheet { place-items: end stretch; padding: 0; }
+  .mapsheet-panel { border-radius: 18px 18px 0 0; max-height: 92vh; max-height: 92dvh; padding: 16px 16px calc(16px + env(safe-area-inset-bottom, 0px)); }
+  .mapsheet-map { height: 50vh; }
+  .mapsheet-actions .st-btn { flex: 1; }
+}

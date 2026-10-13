@@ -417,7 +417,7 @@
           <div class="st-more"${isOpen ? "" : " hidden"}><p>${esc(t.details)}</p>${c.verse ? verseBlock(c.verse) : ""}</div>
           <div class="st-actions">
             <button type="button" class="st-link" data-more aria-expanded="${isOpen}">${esc(isOpen ? T.readLess : T.readMore)}</button>
-            ${e.route || e.place ? `<a class="st-link" href="#map" data-map="${e.id}">${esc(T.seeOnMap)}</a>` : ""}
+            ${e.route || e.place ? `<button type="button" class="st-link" data-map="${e.id}" aria-haspopup="dialog">${esc(T.seeOnMap)}</button>` : ""}
           </div>
         </article></section>`;
     }).join("");
@@ -449,7 +449,7 @@
     const snd = ev.target.closest("[data-sound]");
     if (snd) { toggleSound(); return; }
     const mapLink = ev.target.closest("[data-map]");
-    if (mapLink && U.showOnMap) { ev.preventDefault(); U.showOnMap(mapLink.dataset.map); }
+    if (mapLink) { ev.preventDefault(); openSheet(mapLink.dataset.map, mapLink); }
   });
   function setOpen(card, on) {
     card.classList.toggle("open", on);
@@ -466,6 +466,104 @@
     const target = el.classList.contains("st-chapter") ? el.offsetTop + el.offsetHeight * 0.18 : el.offsetTop;
     window.scrollTo({ top: target, behavior: reduceMotion ? "auto" : "smooth" });
   }
+
+  /* ------------------------------------------------------------------ */
+  /* Carte d'un événement, ouverte par-dessus le chapitre                */
+  /* (on ne quitte pas le voyage : à la fermeture, on est au même endroit) */
+  /* ------------------------------------------------------------------ */
+  let sheetEvent = null, sheetOpener = null, sheetAnim = 0;
+  const placeAt = (pt) => Object.keys(M.places).find((k) => M.places[k][0] === pt[0] && M.places[k][1] === pt[1]);
+  function openSheet(id, opener) {
+    const e = eventById[id];
+    if (!e) return;
+    sheetEvent = e;
+    sheetOpener = opener || null;
+    const box = $("#mapSheet");
+    box.hidden = false;
+    document.body.classList.add("sheet-open");
+    renderSheet();
+    $("#sheetClose").focus({ preventScroll: true });
+  }
+  function closeSheet() {
+    const box = $("#mapSheet");
+    if (box.hidden) return;
+    box.hidden = true;
+    document.body.classList.remove("sheet-open");
+    cancelAnimationFrame(sheetAnim);
+    if (sheetOpener) sheetOpener.focus({ preventScroll: true });
+  }
+  function renderSheet() {
+    const e = sheetEvent;
+    if (!e) return;
+    const T = U.T();
+    const r = e.route ? S.routes.find((x) => x.id === e.route) : null;
+    $("#sheetDate").textContent = U.yearText(e) + U.SEP() + U.ahText(e);
+    $("#sheetTitle").textContent = r ? U.tr(r).name : U.tr(e).title;
+    $("#sheetInfo").textContent = r ? U.tr(r).info : U.tr(e).summary;
+    const svg = $("#sheetMap");
+    // les lieux à nommer : extrémités de l'itinéraire, et le lieu de l'événement
+    const pts = r ? M.routes[e.route] : [M.places[e.place]];
+    const ids = new Set();
+    if (r) { [pts[0], pts[pts.length - 1]].forEach((pt) => { const k = placeAt(pt); if (k) ids.add(k); }); }
+    if (e.place && M.places[e.place]) ids.add(e.place);
+    // cadrage : l'itinéraire ou le lieu, avec de la marge, au format du cadre
+    const all = [...pts, ...[...ids].map((k) => M.places[k])];
+    const xs = all.map((p) => p[0]), ys = all.map((p) => p[1]);
+    const box = svg.getBoundingClientRect();
+    const ratio = box.width / Math.max(1, box.height);
+    let w = Math.max(Math.max(...xs) - Math.min(...xs), 50) * 1.5 + 40;
+    let h = Math.max(Math.max(...ys) - Math.min(...ys), 50) * 1.3 + 40;
+    if (w / h > ratio) h = w / ratio; else w = h * ratio;
+    const cx = (Math.max(...xs) + Math.min(...xs)) / 2, cy = (Math.max(...ys) + Math.min(...ys)) / 2;
+    svg.setAttribute("viewBox", `${(cx - w / 2).toFixed(1)} ${(cy - h / 2).toFixed(1)} ${w.toFixed(1)} ${h.toFixed(1)}`);
+    const k = w / Math.max(1, box.width); // unités de carte par pixel, pour garder des tailles fixes à l'écran
+    const fs = (px) => (px * k).toFixed(2);
+    const others = S.routes.filter((x) => x.id !== e.route).map((x) => `<path class="ms-other" d="${smoothPath(M.routes[x.id])}" style="stroke-width:${fs(1.5)}"/>`).join("");
+    const label = (id) => {
+      const [x, y] = M.places[id];
+      const left = x < cx;
+      return `<g class="ms-place"><circle cx="${x}" cy="${y}" r="${fs(5)}" style="stroke-width:${fs(2)}"/>` +
+        `<text x="${(x + (left ? -1 : 1) * 9 * k).toFixed(1)}" y="${(y + 4 * k).toFixed(1)}" text-anchor="${left ? "end" : "start"}" style="font-size:${fs(14)}px;stroke-width:${fs(4)}px">${esc(U.tr(S.places[id]))}</text></g>`;
+    };
+    svg.innerHTML = `<rect x="-400" y="-400" width="1400" height="1600" class="ms-sea"/><path class="ms-land" d="${M.land}" style="stroke-width:${fs(1)}"/>` + others +
+      (r ? `<path class="ms-route${r.spiritual ? " spiritual" : ""}" id="sheetRoute" d="${smoothPath(pts)}" style="stroke-width:${fs(4)}"/><circle class="ms-traveler" id="sheetTraveler" r="${fs(6)}" cx="${pts[0][0]}" cy="${pts[0][1]}"/>` : "") +
+      [...ids].map(label).join("") +
+      (!r ? `<circle class="ms-pulse" cx="${M.places[e.place][0]}" cy="${M.places[e.place][1]}" r="${fs(18)}" style="stroke-width:${fs(2)}"/>` : "");
+    // le tracé se dessine
+    cancelAnimationFrame(sheetAnim);
+    const route = $("#sheetRoute");
+    if (!route) return;
+    const L = route.getTotalLength();
+    if (!r.spiritual) route.style.strokeDasharray = `${L} ${L}`;
+    const tv = $("#sheetTraveler");
+    const t0 = performance.now(), dur = reduceMotion ? 0 : 1800;
+    const step = (now) => {
+      const q = dur ? smooth(clamp((now - t0) / dur)) : 1;
+      if (!r.spiritual) route.style.strokeDashoffset = L * (1 - q);
+      const pt = route.getPointAtLength(L * q);
+      tv.setAttribute("cx", pt.x); tv.setAttribute("cy", pt.y);
+      if (q < 1) sheetAnim = requestAnimationFrame(step);
+    };
+    sheetAnim = requestAnimationFrame(step);
+  }
+  $("#mapSheet").addEventListener("click", (ev) => {
+    if (ev.target === $("#mapSheet") || ev.target.closest("#sheetClose, #sheetBack")) closeSheet();
+    else if (ev.target.closest("#sheetFull")) {
+      const id = sheetEvent && sheetEvent.id;
+      closeSheet();
+      if (id && U.showOnMap) U.showOnMap(id);
+    }
+  });
+  document.addEventListener("keydown", (ev) => {
+    if ($("#mapSheet").hidden) return;
+    if (ev.key === "Escape") closeSheet();
+    if (ev.key === "Tab") { // le focus reste dans la fenêtre
+      const f = $$("#mapSheet button");
+      if (ev.shiftKey && document.activeElement === f[0]) { ev.preventDefault(); f[f.length - 1].focus(); }
+      else if (!ev.shiftKey && document.activeElement === f[f.length - 1]) { ev.preventDefault(); f[0].focus(); }
+    }
+  });
+  window.addEventListener("resize", () => { if (!$("#mapSheet").hidden) renderSheet(); });
 
   /* ------------------------------------------------------------------ */
   /* Tiroir des chapitres et barre de vie                                */
@@ -1191,7 +1289,7 @@
       storyVisible = entries[0].isIntersecting;
       document.body.classList.toggle("story-off", !storyVisible);
     }, { rootMargin: "-80px 0px -30% 0px" }).observe($("#story"));
-    U.onLang.push(() => { renderStory(); resize(); $("#soundBtn").setAttribute("aria-label", Sound.on ? U.T().soundOff : U.T().soundOn); });
+    U.onLang.push(() => { renderStory(); resize(); if (!$("#mapSheet").hidden) renderSheet(); $("#soundBtn").setAttribute("aria-label", Sound.on ? U.T().soundOff : U.T().soundOn); });
     requestAnimationFrame(frame);
   }
 
